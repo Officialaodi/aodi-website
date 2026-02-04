@@ -1,0 +1,18 @@
+[
+  {
+    "name": "Sample Mentee",
+    "role": "Mentee",
+    "country": "Nigeria",
+    "quote": "AODI gave me clarity and the confidence to pursue opportunities I would have avoided before.",
+    "programSlug": "global-mentorship-leadership",
+    "consentFlag": false
+  },
+  {
+    "name": "Sample Mentor",
+    "role": "Mentor",
+    "country": "UK",
+    "quote": "AODI\u2019s structure and seriousness make it easy to contribute meaningfully and see outcomes.",
+    "programSlug": "global-mentorship-leadership",
+    "consentFlag": false
+  }
+]

@@ -1,0 +1,34 @@
+[
+  {
+    "slug": "mentees-supported",
+    "label": "Mentees Supported",
+    "value": "200+",
+    "unit": "mentees",
+    "period": "Since 2018",
+    "note": "Replace with actual figure"
+  },
+  {
+    "slug": "global-mentors",
+    "label": "Global Mentors",
+    "value": "50+",
+    "unit": "mentors",
+    "period": "Current network",
+    "note": "Replace with actual figure"
+  },
+  {
+    "slug": "countries-reached",
+    "label": "Countries Reached",
+    "value": "10+",
+    "unit": "countries",
+    "period": "Since 2018",
+    "note": "Replace with actual figure"
+  },
+  {
+    "slug": "programs-delivered",
+    "label": "Programs Delivered",
+    "value": "15+",
+    "unit": "programs",
+    "period": "Since 2018",
+    "note": "Replace with actual figure"
+  }
+]
