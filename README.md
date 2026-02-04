@@ -14,116 +14,178 @@ A comprehensive website and content management system for AODI, a UK-registered 
 
 ## Tech Stack
 
-- **Framework**: Next.js 16 (App Router)
-- **Language**: TypeScript
-- **Database**: PostgreSQL with Drizzle ORM
-- **Styling**: Tailwind CSS
-- **UI Components**: Radix UI / shadcn/ui
-- **Icons**: Lucide React
-- **Forms**: React Hook Form + Zod validation
-- **Security**: hCaptcha, HMAC sessions, RBAC
+| Category | Technology |
+|----------|------------|
+| Framework | Next.js 14 (App Router) |
+| Language | TypeScript |
+| Database | PostgreSQL + Drizzle ORM |
+| Styling | Tailwind CSS |
+| UI Components | Radix UI / shadcn/ui |
+| Icons | Lucide React |
+| Forms | React Hook Form + Zod |
+| Bot Protection | hCaptcha |
+| Payments | Paystack, PayPal |
+| Email | SendGrid |
 
 See [TECH_STACK.md](./TECH_STACK.md) for detailed documentation.
 
-## Quick Start
+---
+
+## Quick Start (Local Development)
 
 ### Prerequisites
 
 - Node.js 18+
-- PostgreSQL database (Neon, Supabase, or local)
+- PostgreSQL database ([Neon](https://neon.tech/) recommended - free tier available)
 
 ### Installation
 
-1. Clone the repository:
 ```bash
-git clone https://github.com/your-username/aodi-website.git
+# Clone the repository
+git clone https://github.com/Officialaodi/aodi-website.git
 cd aodi-website
-```
 
-2. Install dependencies:
-```bash
+# Navigate to the web app
 cd apps/web
+
+# Install dependencies
 npm install
-```
 
-3. Set up environment variables:
-```bash
+# Set up environment variables
 cp .env.example .env.local
-# Edit .env.local with your values
-```
+# Edit .env.local with your database URL and secrets
 
-4. Push database schema:
-```bash
+# Push database schema
 npm run db:push
-```
 
-5. Start development server:
-```bash
+# Start development server
 npm run dev
 ```
 
-6. Visit `http://localhost:3000/admin/setup` to create the first admin account.
+Visit **http://localhost:3000** to see the site.
+
+Create your admin account at **http://localhost:3000/admin/setup**
+
+---
 
 ## Environment Variables
 
-See `apps/web/.env.example` for all required and optional environment variables.
+Copy `apps/web/.env.example` to `apps/web/.env.local` and configure:
 
-**Required:**
-- `DATABASE_URL` - PostgreSQL connection string
-- `SESSION_SECRET` - Secret for signing session cookies
-- `ADMIN_PASSWORD` - Master password for admin recovery
+### Required
 
-**Recommended:**
-- `NEXT_PUBLIC_HCAPTCHA_SITE_KEY` - For form spam protection
-- `HCAPTCHA_SECRET_KEY` - For form spam protection
+| Variable | Description |
+|----------|-------------|
+| `DATABASE_URL` | PostgreSQL connection string |
+| `SESSION_SECRET` | Random 32+ character string for session signing |
+| `ADMIN_PASSWORD` | Master password for admin account recovery |
+
+### Recommended
+
+| Variable | Description |
+|----------|-------------|
+| `NEXT_PUBLIC_HCAPTCHA_SITE_KEY` | hCaptcha site key for form protection |
+| `HCAPTCHA_SECRET_KEY` | hCaptcha secret key |
+
+### Optional
+
+| Variable | Description |
+|----------|-------------|
+| `PAYSTACK_SECRET_KEY` | Paystack payment processing |
+| `SENDGRID_API_KEY` | SendGrid email service |
+| `NEXT_PUBLIC_GA_MEASUREMENT_ID` | Google Analytics 4 |
+| `NEXT_PUBLIC_SENTRY_DSN` | Sentry error monitoring |
+
+---
+
+## Available Commands
+
+Run these from the `apps/web` directory:
+
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start development server (http://localhost:3000) |
+| `npm run build` | Build for production |
+| `npm run start` | Start production server |
+| `npm run lint` | Run ESLint |
+| `npm run db:push` | Push database schema to PostgreSQL |
+| `npm run db:studio` | Open Drizzle Studio (database GUI) |
+
+---
 
 ## Deployment
 
-### Vercel (Recommended for Next.js)
+### Vercel (Recommended)
 
-1. Import your GitHub repository to Vercel
-2. Set **Root Directory** to `apps/web`
-3. Add all environment variables from `.env.example`
-4. Deploy
+1. Push code to GitHub
+2. Import repository to [Vercel](https://vercel.com/)
+3. Set **Root Directory**: `apps/web`
+4. Add environment variables
+5. Deploy
 
 ### Cloudflare Pages
 
-1. Connect your GitHub repository
-2. Set **Root Directory** to `apps/web`
-3. Build command: `npm run build`
-4. Output directory: `.next`
+1. Push code to GitHub
+2. Connect to [Cloudflare Pages](https://pages.cloudflare.com/)
+3. Set **Root Directory**: `apps/web`
+4. Set **Build command**: `npm run build`
 5. Add environment variables
+6. Deploy
 
 ### Post-Deployment
 
-1. Run database migrations: `npm run db:push`
+1. Run `npm run db:push` to set up database tables
 2. Visit `/admin/setup` to create the Super Admin account
+
+---
+
+## Admin Access
+
+| URL | Purpose |
+|-----|---------|
+| `/admin/setup` | First-time admin account creation |
+| `/admin/login` | Admin login |
+| `/admin` | Admin dashboard |
+
+### Password Recovery
+
+If locked out, use the password reset endpoint:
+
+```bash
+curl -X POST https://your-domain.com/api/admin/reset-admin \
+  -H "Content-Type: application/json" \
+  -d '{"masterPassword":"YOUR_ADMIN_PASSWORD","email":"admin@example.com","newPassword":"newpassword"}'
+```
+
+---
 
 ## Project Structure
 
 ```
 apps/web/
 ├── src/
-│   ├── app/          # Next.js pages and API routes
-│   ├── components/   # React components
-│   ├── lib/          # Utilities and database
-│   └── styles/       # Global styles
-├── public/           # Static assets
-└── drizzle/          # Database migrations
+│   ├── app/           # Next.js pages and API routes
+│   │   ├── admin/     # Admin CMS pages
+│   │   ├── api/       # API endpoints
+│   │   └── ...        # Public pages
+│   ├── components/    # React components
+│   ├── lib/           # Database, auth, utilities
+│   └── styles/        # Global CSS
+├── public/            # Static assets
+├── .env.example       # Environment template
+├── drizzle.config.ts  # Database configuration
+└── package.json       # Dependencies
 ```
 
-## Admin Access
+---
 
-- **Setup**: `/admin/setup` (first-time only)
-- **Login**: `/admin/login`
-- **Dashboard**: `/admin`
+## Documentation
 
-If locked out, use the password reset endpoint:
-```bash
-curl -X POST https://your-domain.com/api/admin/reset-admin \
-  -H "Content-Type: application/json" \
-  -d '{"masterPassword":"YOUR_ADMIN_PASSWORD","email":"admin@example.com","newPassword":"newpassword"}'
-```
+- [LOCAL_SETUP.md](./apps/web/LOCAL_SETUP.md) - Detailed local development guide
+- [TECH_STACK.md](./TECH_STACK.md) - Complete technical documentation
+- [.env.example](./apps/web/.env.example) - Environment variables reference
+
+---
 
 ## License
 
