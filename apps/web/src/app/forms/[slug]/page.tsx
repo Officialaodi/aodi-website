@@ -189,10 +189,10 @@ export default function DynamicFormPage() {
     const value = values[field.fieldKey]
     const fieldError = fieldErrors[field.fieldKey]
 
-    const widthClass = field.width === "half" ? "md:col-span-1" : "md:col-span-2"
+    const widthClass = field.width === "third" ? "md:col-span-2" : field.width === "half" ? "md:col-span-3" : "md:col-span-6"
 
     return (
-      <div key={field.id} className={`space-y-2 col-span-2 ${widthClass}`}>
+      <div key={field.id} className={`space-y-2 col-span-6 ${widthClass}`}>
         {field.fieldType !== "checkbox" && (
           <Label htmlFor={field.fieldKey} className="text-sm font-medium text-gray-700">
             {field.label}
@@ -277,21 +277,33 @@ export default function DynamicFormPage() {
         )}
 
         {field.fieldType === "select" && field.options && (
-          <Select
-            value={value as string}
-            onValueChange={(val) => handleChange(field.fieldKey, val)}
-          >
-            <SelectTrigger className="h-11 bg-white" data-testid={`select-${field.fieldKey}`}>
-              <SelectValue placeholder={field.placeholder || "Select..."} />
-            </SelectTrigger>
-            <SelectContent className="bg-white text-gray-900">
-              {field.options.filter(opt => opt.value && opt.value.trim() !== "").map((option, idx) => (
-                <SelectItem key={`${option.value}-${idx}`} value={option.value} className="text-gray-900 focus:bg-gray-100">
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <>
+            <Select
+              value={value as string}
+              onValueChange={(val) => handleChange(field.fieldKey, val)}
+            >
+              <SelectTrigger className="h-11 bg-white" data-testid={`select-${field.fieldKey}`}>
+                <SelectValue placeholder={field.placeholder || "Select..."} />
+              </SelectTrigger>
+              <SelectContent className="bg-white text-gray-900">
+                {field.options.filter(opt => opt.value && opt.value.trim() !== "").map((option, idx) => (
+                  <SelectItem key={`${option.value}-${idx}`} value={option.value} className="text-gray-900 focus:bg-gray-100">
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {value === "Other" && (
+              <Input
+                value={(values[`${field.fieldKey}_other`] as string) || ""}
+                onChange={(e) => handleChange(`${field.fieldKey}_other`, e.target.value)}
+                placeholder={`Please specify your ${field.label.toLowerCase()}`}
+                required
+                className="h-11 mt-2"
+                data-testid={`input-${field.fieldKey}-other`}
+              />
+            )}
+          </>
         )}
 
         {field.fieldType === "country" && (
@@ -358,25 +370,37 @@ export default function DynamicFormPage() {
         )}
 
         {field.fieldType === "radio" && field.options && (
-          <div className="space-y-3 pt-1">
-            {field.options.filter(opt => opt.value && opt.value.trim() !== "").map((option, idx) => (
-              <div key={`${option.value}-${idx}`} className="flex items-center space-x-3">
-                <input
-                  type="radio"
-                  id={`${field.fieldKey}-${option.value}`}
-                  name={field.fieldKey}
-                  value={option.value}
-                  checked={value === option.value}
-                  onChange={(e) => handleChange(field.fieldKey, e.target.value)}
-                  className="w-4 h-4 text-[#0F3D2E] focus:ring-[#0F3D2E]"
-                  data-testid={`radio-${field.fieldKey}-${option.value}`}
-                />
-                <Label htmlFor={`${field.fieldKey}-${option.value}`} className="font-normal text-sm text-gray-600">
-                  {option.label}
-                </Label>
-              </div>
-            ))}
-          </div>
+          <>
+            <div className="space-y-3 pt-1">
+              {field.options.filter(opt => opt.value && opt.value.trim() !== "").map((option, idx) => (
+                <div key={`${option.value}-${idx}`} className="flex items-center space-x-3">
+                  <input
+                    type="radio"
+                    id={`${field.fieldKey}-${option.value}`}
+                    name={field.fieldKey}
+                    value={option.value}
+                    checked={value === option.value}
+                    onChange={(e) => handleChange(field.fieldKey, e.target.value)}
+                    className="w-4 h-4 text-[#0F3D2E] focus:ring-[#0F3D2E]"
+                    data-testid={`radio-${field.fieldKey}-${option.value}`}
+                  />
+                  <Label htmlFor={`${field.fieldKey}-${option.value}`} className="font-normal text-sm text-gray-600">
+                    {option.label}
+                  </Label>
+                </div>
+              ))}
+            </div>
+            {value === "Other" && (
+              <Input
+                value={(values[`${field.fieldKey}_other`] as string) || ""}
+                onChange={(e) => handleChange(`${field.fieldKey}_other`, e.target.value)}
+                placeholder={`Please specify your ${field.label.toLowerCase()}`}
+                required
+                className="h-11 mt-2"
+                data-testid={`input-${field.fieldKey}-other`}
+              />
+            )}
+          </>
         )}
 
         {field.helpText && (
@@ -592,7 +616,7 @@ export default function DynamicFormPage() {
                       </h3>
                     </div>
                   )}
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-5">
+                  <div className="grid grid-cols-6 gap-x-4 gap-y-5">
                     {groupedFields[section].map(renderField)}
                   </div>
                 </div>

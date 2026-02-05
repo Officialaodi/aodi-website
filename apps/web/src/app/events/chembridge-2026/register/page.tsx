@@ -55,6 +55,7 @@ export default function ChemBridge2026RegisterPage() {
   const [countryOfResidence, setCountryOfResidence] = useState("")
   const [currentLevel, setCurrentLevel] = useState("")
   const [heardAbout, setHeardAbout] = useState("")
+  const [customHeardAbout, setCustomHeardAbout] = useState("")
   const [attendancePreference, setAttendancePreference] = useState("")
   const [captchaToken, setCaptchaToken] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -86,7 +87,7 @@ export default function ChemBridge2026RegisterPage() {
       currentLevel,
       fieldOfStudy: formData.get('fieldOfStudy') as string,
       programmeGoals: formData.get('programmeGoals') as string,
-      heardAbout,
+      heardAbout: heardAbout === "Other" ? customHeardAbout : heardAbout,
       attendancePreference,
       consentToContact: agreedToContact,
       agreedToPolicy,
@@ -393,6 +394,16 @@ export default function ChemBridge2026RegisterPage() {
                           ))}
                         </SelectContent>
                       </Select>
+                      {heardAbout === "Other" && (
+                        <Input
+                          placeholder="Please specify how you heard about ChemBridge 2026"
+                          value={customHeardAbout}
+                          onChange={(e) => setCustomHeardAbout(e.target.value)}
+                          className="mt-2"
+                          required
+                          data-testid="input-custom-heard-about"
+                        />
+                      )}
                     </div>
                     <div>
                       <Label htmlFor="attendancePreference">Preferred Attendance Mode *</Label>
