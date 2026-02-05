@@ -17,6 +17,7 @@ import { AnalyticsDashboard } from "@/components/admin/AnalyticsDashboard"
 import { ActivityLogDashboard } from "@/components/admin/ActivityLogDashboard"
 import { SiteSettingsManager } from "@/components/admin/SiteSettingsManager"
 import { FormsManager } from "@/components/admin/FormsManager"
+import { MediaLibraryManager } from "@/components/admin/MediaLibraryManager"
 import { AdminSidebar } from "@/components/admin/AdminSidebar"
 import { RichTextEditor } from "@/components/ui/rich-text-editor"
 import { SwitchableChart, DonutChart } from "@/components/ui/charts"
@@ -1179,6 +1180,7 @@ export default function AdminDashboardPage() {
       "email-settings": "Email Settings",
       "site-settings": "Site Settings",
       forms: "Forms",
+      "media-library": "Media Library",
       integrations: "Integrations",
       users: "Users",
       roles: "Roles",
@@ -2743,6 +2745,10 @@ export default function AdminDashboardPage() {
 
           <div className={activeTab === "forms" ? "block" : "hidden"}>
             <FormsManager />
+          </div>
+
+          <div className={activeTab === "media-library" ? "block" : "hidden"}>
+            <MediaLibraryManager />
           </div>
 
           <div className={activeTab === "integrations" ? "block" : "hidden"}>

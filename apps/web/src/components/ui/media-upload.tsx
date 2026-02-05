@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback } from "react"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { Upload, X, Image as ImageIcon, Video, FileText, Loader2 } from "lucide-react"
 
 type MediaType = "image" | "video" | "document" | "any"
@@ -126,11 +127,11 @@ export function MediaUpload({
     
     if (type === "document") {
       return (
-        <div className="flex items-center gap-3 p-4 bg-gray-100 rounded-lg border">
-          <FileText className="w-8 h-8 text-red-500" />
+        <div className="flex items-center gap-3 p-4 bg-muted rounded-lg border">
+          <FileText className="w-8 h-8 text-destructive" />
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium truncate">{value.split('/').pop()}</p>
-            <a href={value} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-500 hover:underline">
+            <a href={value} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline" data-testid="link-view-pdf">
               View PDF
             </a>
           </div>
@@ -149,10 +150,10 @@ export function MediaUpload({
   }
 
   const getIcon = () => {
-    if (mediaType === "video") return <Video className="w-10 h-10 text-gray-400" />
-    if (mediaType === "document") return <FileText className="w-10 h-10 text-gray-400" />
-    if (mediaType === "image") return <ImageIcon className="w-10 h-10 text-gray-400" />
-    return <Upload className="w-10 h-10 text-gray-400" />
+    if (mediaType === "video") return <Video className="w-10 h-10 text-muted-foreground" />
+    if (mediaType === "document") return <FileText className="w-10 h-10 text-muted-foreground" />
+    if (mediaType === "image") return <ImageIcon className="w-10 h-10 text-muted-foreground" />
+    return <Upload className="w-10 h-10 text-muted-foreground" />
   }
 
   const getPlaceholderText = () => {
@@ -171,7 +172,7 @@ export function MediaUpload({
             type="button"
             variant="destructive"
             size="icon"
-            className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
+            className="absolute -top-2 -right-2 rounded-full"
             onClick={handleRemove}
             data-testid="button-remove-media"
           >
@@ -179,7 +180,7 @@ export function MediaUpload({
           </Button>
         </div>
       ) : (
-        <div className="border-2 border-dashed rounded-lg p-6 text-center bg-gray-50">
+        <div className="border-2 border-dashed rounded-lg p-6 text-center bg-muted/50">
           <input
             ref={fileInputRef}
             type="file"
@@ -192,13 +193,13 @@ export function MediaUpload({
           
           {uploading ? (
             <div className="flex flex-col items-center gap-2">
-              <Loader2 className="w-8 h-8 text-gray-400 animate-spin" />
-              <p className="text-sm text-gray-500">Uploading...</p>
+              <Loader2 className="w-8 h-8 text-muted-foreground animate-spin" />
+              <p className="text-sm text-muted-foreground">Uploading...</p>
             </div>
           ) : (
             <div className="flex flex-col items-center gap-3">
               {getIcon()}
-              <p className="text-sm text-gray-500">{getPlaceholderText()}</p>
+              <p className="text-sm text-muted-foreground">{getPlaceholderText()}</p>
               <div className="flex gap-2">
                 <Button
                   type="button"
@@ -227,12 +228,12 @@ export function MediaUpload({
 
       {showUrlInput && !value && (
         <div className="flex gap-2">
-          <input
+          <Input
             type="url"
             placeholder="https://example.com/media-file"
             value={urlInput}
             onChange={(e) => setUrlInput(e.target.value)}
-            className="flex-1 px-3 py-2 text-sm border rounded-lg"
+            className="flex-1"
             data-testid="input-media-url"
           />
           <Button
@@ -248,6 +249,7 @@ export function MediaUpload({
             variant="ghost"
             size="sm"
             onClick={() => setShowUrlInput(false)}
+            data-testid="button-cancel-url"
           >
             Cancel
           </Button>
@@ -255,7 +257,7 @@ export function MediaUpload({
       )}
 
       {error && (
-        <p className="text-sm text-red-500" data-testid="text-upload-error">{error}</p>
+        <p className="text-sm text-destructive" data-testid="text-upload-error">{error}</p>
       )}
     </div>
   )

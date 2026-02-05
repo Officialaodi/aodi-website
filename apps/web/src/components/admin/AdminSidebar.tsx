@@ -25,6 +25,7 @@ import {
   UserCog,
   KeyRound,
   LayoutDashboard,
+  FolderOpen,
   type LucideIcon
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -95,6 +96,7 @@ const navGroups: NavGroup[] = [
     items: [
       { label: "Site Settings", value: "site-settings", icon: Settings },
       { label: "Forms", value: "forms", icon: List },
+      { label: "Media Library", value: "media-library", icon: FolderOpen },
       { label: "Integrations", value: "integrations", icon: Zap },
       { label: "Users", value: "users", icon: UserCog },
       { label: "Roles", value: "roles", icon: KeyRound },
