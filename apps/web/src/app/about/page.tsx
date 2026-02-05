@@ -3,40 +3,50 @@ import type { Metadata } from 'next'
 import { SimpleHero } from '@/components/sections/SimpleHero'
 import { Button } from '@/components/ui/button'
 import { Check } from 'lucide-react'
+import { getCachedSiteSettings } from '@/lib/cache'
+
+export const revalidate = 300
 
 export const metadata: Metadata = {
   title: 'About | Africa of Our Dream Education Initiative (AODI)',
   description: 'Learn about AODI - a globally governed leadership and talent development institution supporting high-potential students and early-career professionals across Africa.',
 }
 
-const differentiators = [
-  "Structured approach to leadership development",
-  "Outcome-driven programs with clear metrics",
-  "Strong governance and accountability",
-  "Institutional partnerships for scale"
-]
+function parseJSON<T>(value: string | undefined, fallback: T): T {
+  if (!value) return fallback
+  try { return JSON.parse(value) as T } catch { return fallback }
+}
 
-const approach = [
-  {
-    title: "Identification & Access",
-    description: "We identify high-potential talent and remove barriers to opportunity."
-  },
-  {
-    title: "Development & Capability",
-    description: "We build leadership capacity through structured programs and mentorship."
-  },
-  {
-    title: "Exposure & Partnerships",
-    description: "We connect participants to global networks, opportunities, and institutional partners."
-  }
-]
+export default async function AboutPage() {
+  const s = await getCachedSiteSettings()
 
-export default function AboutPage() {
+  const differentiators = parseJSON<string[]>(s.about_differentiators, [
+    "Structured approach to leadership development",
+    "Outcome-driven programs with clear metrics",
+    "Strong governance and accountability",
+    "Institutional partnerships for scale"
+  ])
+
+  const approach = parseJSON<{ title: string; description: string }[]>(s.about_approach, [
+    {
+      title: "Identification & Access",
+      description: "We identify high-potential talent and remove barriers to opportunity."
+    },
+    {
+      title: "Development & Capability",
+      description: "We build leadership capacity through structured programs and mentorship."
+    },
+    {
+      title: "Exposure & Partnerships",
+      description: "We connect participants to global networks, opportunities, and institutional partners."
+    }
+  ])
+
   return (
     <>
       <SimpleHero
-        headline="About AODI"
-        subheadline="Africa of Our Dream Education Initiative (AODI) is a globally governed leadership and talent development institution supporting high-potential students and early-career professionals across Africa."
+        headline={s.about_hero_headline ?? "About AODI"}
+        subheadline={s.about_hero_subheadline ?? "Africa of Our Dream Education Initiative (AODI) is a globally governed leadership and talent development institution supporting high-potential students and early-career professionals across Africa."}
       />
 
       {/* Mission */}
@@ -47,14 +57,28 @@ export default function AboutPage() {
               Our Mission
             </h2>
             <p className="text-lg text-slate">
-              Build leadership capacity and unlock access to opportunity for high-potential students and early-career professionals across Africa.
+              {s.about_mission ?? "Build leadership capacity and unlock access to opportunity for high-potential students and early-career professionals across Africa."}
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Vision */}
+      <section className="py-16 md:py-24 bg-soft-grey">
+        <div className="mx-auto max-w-7xl px-6 lg:px-8">
+          <div className="mx-auto max-w-3xl text-center">
+            <h2 className="text-3xl font-bold tracking-tight text-charcoal mb-6" data-testid="text-vision">
+              Our Vision
+            </h2>
+            <p className="text-lg text-slate">
+              {s.about_vision ?? "An Africa where every high-potential young person has the leadership skills, networks, and opportunities to drive transformative change."}
             </p>
           </div>
         </div>
       </section>
 
       {/* What Makes Us Different */}
-      <section className="py-16 md:py-24 bg-soft-grey">
+      <section className="py-16 md:py-24 bg-white">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
           <div className="mx-auto max-w-3xl">
             <h2 className="text-3xl font-bold tracking-tight text-charcoal text-center mb-12" data-testid="text-different">
@@ -73,7 +97,7 @@ export default function AboutPage() {
       </section>
 
       {/* Where We Operate */}
-      <section className="py-16 md:py-24 bg-white">
+      <section className="py-16 md:py-24 bg-soft-grey">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
           <div className="mx-auto max-w-3xl text-center">
             <h2 className="text-3xl font-bold tracking-tight text-charcoal mb-6" data-testid="text-operate">
@@ -95,7 +119,7 @@ export default function AboutPage() {
       </section>
 
       {/* Our Approach */}
-      <section className="py-16 md:py-24 bg-soft-grey">
+      <section className="py-16 md:py-24 bg-white">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
           <h2 className="text-3xl font-bold tracking-tight text-charcoal text-center mb-12" data-testid="text-approach">
             Our Approach

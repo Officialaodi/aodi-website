@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { RichTextEditor } from "@/components/ui/rich-text-editor"
 import { ImageUpload } from "@/components/ui/image-upload"
-import { RefreshCw, Save, Globe, Home, Mail, Share2 } from "lucide-react"
+import { RefreshCw, Save, Globe, Home, Mail, Share2, Info, Handshake, Users, BarChart3, Heart, Shield } from "lucide-react"
 import {
   Tabs,
   TabsContent,
@@ -30,6 +30,12 @@ type SettingsGroup = Record<string, SiteSetting[]>
 
 const categoryIcons: Record<string, typeof Globe> = {
   homepage: Home,
+  about: Info,
+  getinvolved: Users,
+  partners: Handshake,
+  impact: BarChart3,
+  support: Heart,
+  governance: Shield,
   footer: Mail,
   social: Share2,
   general: Globe,
@@ -37,10 +43,18 @@ const categoryIcons: Record<string, typeof Globe> = {
 
 const categoryLabels: Record<string, string> = {
   homepage: "Homepage",
+  about: "About Page",
+  getinvolved: "Get Involved Page",
+  partners: "Partners Page",
+  impact: "Impact Page",
+  support: "Support / Donations Page",
+  governance: "Governance Page",
   footer: "Footer & Contact",
   social: "Social Media",
   general: "General",
 }
+
+const categoryOrder = ["homepage", "about", "getinvolved", "partners", "impact", "support", "governance", "footer", "social", "general"]
 
 export function SiteSettingsManager() {
   const [settings, setSettings] = useState<SettingsGroup>({})
@@ -122,6 +136,17 @@ export function SiteSettingsManager() {
             placeholder="Upload an image"
           />
         )
+      case "json":
+        return (
+          <Textarea
+            value={value}
+            onChange={(e) => handleChange(setting.key, e.target.value)}
+            placeholder={setting.description || "Enter JSON..."}
+            rows={6}
+            className="font-mono text-xs"
+            data-testid={`json-${setting.key}`}
+          />
+        )
       case "textarea":
         return (
           <Textarea
@@ -154,7 +179,11 @@ export function SiteSettingsManager() {
     )
   }
 
-  const categories = Object.keys(settings)
+  const categories = [...Object.keys(settings)].sort((a, b) => {
+    const ai = categoryOrder.indexOf(a)
+    const bi = categoryOrder.indexOf(b)
+    return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi)
+  })
 
   return (
     <div className="space-y-4">
@@ -185,7 +214,7 @@ export function SiteSettingsManager() {
           )}
 
           <Tabs defaultValue={categories[0] || "homepage"}>
-            <TabsList className="mb-4">
+            <TabsList className="mb-4 flex-wrap h-auto gap-1">
               {categories.map((category) => {
                 const Icon = categoryIcons[category] || Globe
                 return (

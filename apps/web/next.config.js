@@ -79,6 +79,16 @@ const nextConfig = {
         destination: '/forms/partner-africa',
         permanent: false,
       },
+      {
+        source: '/events/chembridge-2026/register',
+        destination: '/forms/chembridge-2026',
+        permanent: false,
+      },
+      {
+        source: '/contact',
+        destination: '/forms/contact',
+        permanent: false,
+      },
     ]
   },
   async headers() {

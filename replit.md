@@ -15,7 +15,15 @@ The AODI website is built as a Next.js 14 frontend application, utilizing the Ap
 
 The project features a comprehensive Content Management System (CMS) accessible via an `/admin` dashboard. This CMS allows for dynamic management of all website content, including applications, governance, impact metrics, programs, events, partners, testimonials, stories, and resources. Security features include rate limiting, HMAC-signed session authentication, and robust security headers. SEO is enhanced through an auto-generated sitemap, robots.txt, Schema.org markup, Open Graph tags, and Google Analytics integration.
 
-The CMS includes a TipTap-based rich text editor for content formatting and a secure media upload system for images. Configurable site settings allow management of homepage and footer content.
+The CMS includes a TipTap-based rich text editor for content formatting and a secure media upload system for images. Configurable site settings allow management of ALL website page content — every public page reads its text, images, and structured data from the `site_settings` database table. Zero hardcoded content exists on any public page.
+
+## Fully Database-Driven Content System
+
+ALL public page content is stored in the `site_settings` table and editable from the admin portal under "Site Settings". The system uses 10 content categories: homepage, about, getinvolved, partners, impact, support, governance, footer, social, and general. Complex data (arrays, nested objects) is stored as JSON strings and parsed at render time using the `parseJSON()` helper with safe fallbacks.
+
+Content pages are async server components that call `getCachedSiteSettings()` (5-minute cache via `unstable_cache`) and render content from database values. Icon components (Lucide icons) use string-to-component maps since React components cannot be stored in the database.
+
+The Admin Site Settings Manager (`SiteSettingsManager.tsx`) renders categories as tabs with proper icons and labels, supports text/textarea/richtext/image/json field types, and sorts categories in a defined order. JSON fields use monospace textareas for structured data editing.
 
 The CRM integrates a universal email sync system compatible with IMAP/SMTP providers (Gmail, Outlook, cPanel) for two-way email synchronization, auto-linking emails to CRM contacts, and sending emails from connected accounts.
 
@@ -57,6 +65,8 @@ A comprehensive Forms Management System allows admins to control all website for
   - /apply/campus-ambassador → /forms/campus-ambassador
   - /apply/stem-workshops → /forms/stem-workshops
   - /apply/partner-africa → /forms/partner-africa
+  - /contact → /forms/contact
+  - /events/chembridge-2026/register → /forms/chembridge-2026
 
 ## Beautiful Event-Linked Forms
 

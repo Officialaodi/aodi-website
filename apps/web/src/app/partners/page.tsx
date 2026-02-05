@@ -3,7 +3,7 @@ import type { Metadata } from 'next'
 import { SimpleHero } from '@/components/sections/SimpleHero'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { getCachedPartners } from '@/lib/cache'
+import { getCachedPartners, getCachedSiteSettings } from '@/lib/cache'
 import { Building2, ExternalLink } from 'lucide-react'
 
 export const metadata: Metadata = {
@@ -13,7 +13,12 @@ export const metadata: Metadata = {
 
 export const revalidate = 300
 
-const partnershipModels = [
+function parseJSON<T>(value: string | undefined, fallback: T): T {
+  if (!value) return fallback
+  try { return JSON.parse(value) as T } catch { return fallback }
+}
+
+const defaultPartnershipModels = [
   {
     title: "Cohort Sponsorship",
     description: "Sponsor a structured cohort of mentees and program delivery.",
@@ -31,17 +36,22 @@ const partnershipModels = [
   }
 ]
 
-async function getPartners() {
-  return getCachedPartners()
-}
-
 export default async function PartnersPage() {
-  const partnersList = await getPartners()
+  const [partnersList, settings] = await Promise.all([
+    getCachedPartners(),
+    getCachedSiteSettings(),
+  ])
+
+  const heroHeadline = settings.partners_hero_headline || "Partner with AODI"
+  const heroSubheadline = settings.partners_hero_subheadline || "We collaborate with foundations, corporates, schools, universities, NGOs, and institutions to scale leadership and talent development across Africa."
+  const partnershipModels = parseJSON<{ title: string; description: string; details: string }[]>(settings.partners_models, defaultPartnershipModels)
+  const ctaText = settings.partners_cta_text || "We'd love to discuss how we can work together to support leadership development across Africa."
+
   return (
     <>
       <SimpleHero
-        headline="Partner with AODI"
-        subheadline="We collaborate with foundations, corporates, schools, universities, NGOs, and institutions to scale leadership and talent development across Africa."
+        headline={heroHeadline}
+        subheadline={heroSubheadline}
       />
 
       {/* Partnership Models */}
@@ -165,7 +175,7 @@ export default async function PartnersPage() {
               Ready to Explore a Partnership?
             </h2>
             <p className="text-white/80 mb-8">
-              We&apos;d love to discuss how we can work together to support leadership development across Africa.
+              {ctaText}
             </p>
             <Link href="/get-involved/partner" data-testid="link-partner-inquiry">
               <Button variant="gold" size="lg">

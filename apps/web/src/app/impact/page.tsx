@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { SimpleHero } from '@/components/sections/SimpleHero'
-import { getCachedImpactMetrics, getCachedTestimonials } from '@/lib/cache'
+import { getCachedImpactMetrics, getCachedTestimonials, getCachedPrograms, getCachedSiteSettings } from '@/lib/cache'
 import { Users, GraduationCap, Globe, Handshake, Award, TrendingUp, Quote } from 'lucide-react'
 
 export const metadata: Metadata = {
@@ -17,11 +17,9 @@ const categoryIcons: Record<string, React.ReactNode> = {
   "Programs & Partnerships": <Handshake className="w-6 h-6" />,
 }
 
-const categoryDescriptions: Record<string, string> = {
-  "Beneficiaries & Reach": "These figures reflect AODI's commitment to equitable access and pan-African reach.",
-  "Education & Capacity Building": "These activities form the foundation of AODI's education-to-leadership pipeline.",
-  "Mentorship & Career Advancement": "Outcome indicators are based on structured program feedback and post-engagement follow-up.",
-  "Programs & Partnerships": "Partnerships play a critical role in scaling delivery, strengthening governance, and extending reach.",
+function parseJSON<T>(value: string | undefined, fallback: T): T {
+  if (!value) return fallback
+  try { return JSON.parse(value) as T } catch { return fallback }
 }
 
 type MetricItem = {
@@ -32,44 +30,9 @@ type MetricItem = {
 
 type MetricsData = Record<string, MetricItem[]>
 
-const defaultMetrics: MetricsData = {
-  "Beneficiaries & Reach": [
-    { label: "Young People Reached", value: "27,000+", description: "Individuals reached through AODI programs, workshops, mentorship, and outreach initiatives" },
-    { label: "Nigerian States Represented", value: "10+", description: "Geographic spread of beneficiaries across Nigeria" },
-    { label: "African Countries Represented", value: "13", description: "African countries represented across AODI activities" },
-    { label: "Underserved Backgrounds", value: "40%+", description: "Proportion of beneficiaries from underserved or low-income backgrounds" },
-  ],
-  "Education & Capacity Building": [
-    { label: "Students Trained (STEM)", value: "5,000+", description: "Students trained through STEM workshops, lectures, and bootcamps" },
-    { label: "Students Supported (Mentorship)", value: "1,000+", description: "Participants supported through structured mentorship programs" },
-    { label: "Cambridge Outreach Participants", value: "5,900+", description: "Participants reached through the Higher Education & Accessibility Cambridge Outreach" },
-  ],
-  "Mentorship & Career Advancement": [
-    { label: "Global Mentors Engaged", value: "400+", description: "Mentors engaged across academia and industry" },
-    { label: "Positive Program Outcomes", value: "70%+", description: "GMP mentees reporting improved academic clarity, career direction, or scholarship readiness" },
-    { label: "Progression Outcomes", value: "50+", description: "Mentees securing scholarships, internships, or academic placements" },
-  ],
-  "Programs & Partnerships": [
-    { label: "Flagship Programs Delivered", value: "5+", description: "Core leadership, mentorship, and access initiatives delivered" },
-    { label: "Institutional Partners", value: "15+", description: "Strategic and institutional partners engaged" },
-  ],
-}
-
-const programs = [
-  { name: "Global Mentorship Program (GMP)", description: "Structured mentorship connecting high-potential students with global professionals" },
-  { name: "Campus Ambassadors Program (CAP)", description: "University-based leadership and community engagement" },
-  { name: "EmpowerHer Initiative", description: "Women-focused leadership and empowerment programs" },
-  { name: "STEM Education Workshops", description: "Technical training and capacity building in science and technology" },
-  { name: "Higher Education & Accessibility Outreach", description: "Cambridge partnership for higher education access" },
-]
-
 async function getMetrics(): Promise<MetricsData> {
   try {
     const metrics = await getCachedImpactMetrics()
-
-    if (metrics.length === 0) {
-      return defaultMetrics
-    }
 
     const grouped = metrics.reduce((acc: MetricsData, metric) => {
       if (!acc[metric.category]) {
@@ -85,7 +48,7 @@ async function getMetrics(): Promise<MetricsData> {
 
     return grouped
   } catch {
-    return defaultMetrics
+    return {}
   }
 }
 
@@ -97,16 +60,32 @@ async function getTestimonials() {
   }
 }
 
+async function getPrograms() {
+  try {
+    return getCachedPrograms()
+  } catch {
+    return []
+  }
+}
+
 export default async function ImpactPage() {
-  const metricsData = await getMetrics()
-  const testimonialsList = await getTestimonials()
-  const categories = ["Beneficiaries & Reach", "Education & Capacity Building", "Mentorship & Career Advancement", "Programs & Partnerships"]
+  const [metricsData, testimonialsList, programsList, settings] = await Promise.all([
+    getMetrics(),
+    getTestimonials(),
+    getPrograms(),
+    getCachedSiteSettings(),
+  ])
+
+  const categoryDescriptions = parseJSON<Record<string, string>>(settings.impact_category_descriptions, {})
+  const heroHeadline = settings.impact_hero_headline || ''
+  const heroSubheadline = settings.impact_hero_subheadline || ''
+  const categories = Object.keys(metricsData)
 
   return (
     <>
       <SimpleHero
-        headline="Measured Impact Across Education, Leadership, and Access"
-        subheadline=""
+        headline={heroHeadline}
+        subheadline={heroSubheadline}
       />
 
       <section className="py-12 md:py-16 bg-white">
@@ -160,47 +139,51 @@ export default async function ImpactPage() {
                 ))}
               </div>
 
-              <p className="text-slate italic" data-testid={`text-category-context-${idx}`}>
-                {categoryDescriptions[category]}
-              </p>
+              {categoryDescriptions[category] && (
+                <p className="text-slate italic" data-testid={`text-category-context-${idx}`}>
+                  {categoryDescriptions[category]}
+                </p>
+              )}
             </div>
           </section>
         )
       })}
 
-      <section className="py-12 md:py-16 bg-white">
-        <div className="mx-auto max-w-7xl px-6 lg:px-8">
-          <div className="flex items-center gap-3 mb-8">
-            <div className="p-2 rounded-lg bg-aodi-gold/10 text-aodi-gold">
-              <Award className="w-6 h-6" />
-            </div>
-            <h2 className="text-2xl md:text-3xl font-bold text-charcoal" data-testid="text-programs-header">
-              Programs & Initiatives Delivered
-            </h2>
-          </div>
-
-          <p className="text-slate mb-8">
-            AODI delivers impact through structured programs, including:
-          </p>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-            {programs.map((program, idx) => (
-              <div 
-                key={idx}
-                className="bg-soft-grey rounded-lg p-6"
-                data-testid={`program-${idx}`}
-              >
-                <h3 className="font-semibold text-charcoal mb-2">{program.name}</h3>
-                <p className="text-sm text-slate">{program.description}</p>
+      {programsList.length > 0 && (
+        <section className="py-12 md:py-16 bg-white">
+          <div className="mx-auto max-w-7xl px-6 lg:px-8">
+            <div className="flex items-center gap-3 mb-8">
+              <div className="p-2 rounded-lg bg-aodi-gold/10 text-aodi-gold">
+                <Award className="w-6 h-6" />
               </div>
-            ))}
-          </div>
+              <h2 className="text-2xl md:text-3xl font-bold text-charcoal" data-testid="text-programs-header">
+                Programs & Initiatives Delivered
+              </h2>
+            </div>
 
-          <p className="text-slate italic">
-            Each program is designed to address specific transition points across secondary education, university, and early career stages.
-          </p>
-        </div>
-      </section>
+            <p className="text-slate mb-8">
+              AODI delivers impact through structured programs, including:
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+              {programsList.map((program, idx) => (
+                <div 
+                  key={program.id}
+                  className="bg-soft-grey rounded-lg p-6"
+                  data-testid={`program-${idx}`}
+                >
+                  <h3 className="font-semibold text-charcoal mb-2">{program.title}</h3>
+                  <p className="text-sm text-slate">{program.summary}</p>
+                </div>
+              ))}
+            </div>
+
+            <p className="text-slate italic">
+              Each program is designed to address specific transition points across secondary education, university, and early career stages.
+            </p>
+          </div>
+        </section>
+      )}
 
       {testimonialsList.length > 0 && (
         <section className="py-12 md:py-16 bg-white">

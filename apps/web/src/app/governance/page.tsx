@@ -7,6 +7,7 @@ import { Check, Users, Linkedin, Shield, Scale, Heart } from 'lucide-react'
 import { db } from '@/lib/db'
 import { trustees, governanceContent, executiveDirector } from '@/lib/schema'
 import { eq, asc } from 'drizzle-orm'
+import { getCachedSiteSettings } from '@/lib/cache'
 
 export const metadata: Metadata = {
   title: 'Governance | Africa of Our Dream Education Initiative (AODI)',
@@ -16,36 +17,17 @@ export const metadata: Metadata = {
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
-const defaultContent = {
-  intro: `Africa of Our Dream Education Initiative (AODI) is governed by an independent Board of Trustees responsible for the organisation's strategic oversight, accountability, and long-term stewardship.
+const iconMap: Record<string, any> = { Shield, Scale, Heart, Users, Check }
 
-The Board ensures that AODI operates in line with its mission, upholds strong governance and safeguarding standards, and maintains financial and operational integrity as the organisation delivers leadership and talent development programs across Africa.`,
-  boardDescription: `The Board comprises Trustees with designated officers responsible for key governance functions. Trustees bring diverse experience across education, leadership development, finance, policy, and international engagement.`,
-  responsibilities: `Setting and reviewing AODI's strategic direction
-Ensuring compliance with legal, regulatory, and ethical standards
-Approving budgets and overseeing financial management
-Appointing and supporting executive leadership
-Safeguarding beneficiaries, partners, and stakeholders
-Monitoring impact, performance, and organisational risk`,
-  executiveDirector: `The Executive Director leads AODI's operations and program delivery, working under the oversight of the Board of Trustees to translate strategy into measurable outcomes.`,
+function parseJSON<T>(value: string | undefined, fallback: T): T {
+  if (!value) return fallback
+  try { return JSON.parse(value) as T } catch { return fallback }
 }
 
-const governanceValues = [
-  {
-    icon: Shield,
-    title: "Accountability",
-    description: "Transparent operations with clear reporting to stakeholders"
-  },
-  {
-    icon: Scale,
-    title: "Integrity",
-    description: "Ethical practices in all organisational decisions"
-  },
-  {
-    icon: Heart,
-    title: "Safeguarding",
-    description: "Protecting the welfare of all beneficiaries"
-  }
+const defaultGovernanceValues = [
+  { icon: "Shield", title: "Accountability", description: "Transparent operations with clear reporting to stakeholders" },
+  { icon: "Scale", title: "Integrity", description: "Ethical practices in all organisational decisions" },
+  { icon: "Heart", title: "Safeguarding", description: "Protecting the welfare of all beneficiaries" }
 ]
 
 async function getGovernanceData() {
@@ -77,35 +59,46 @@ async function getGovernanceData() {
 }
 
 export default async function GovernancePage() {
-  const { trustees: trusteesData, content, execDirector } = await getGovernanceData()
+  const [{ trustees: trusteesData, content, execDirector }, s] = await Promise.all([
+    getGovernanceData(),
+    getCachedSiteSettings()
+  ])
 
-  const intro = content.intro || defaultContent.intro
-  const boardDescription = content.boardDescription || defaultContent.boardDescription
-  const responsibilities = content.responsibilities || defaultContent.responsibilities
-  const executiveDirector = content.executiveDirector || defaultContent.executiveDirector
+  const intro = content.intro || s.governance_intro || ""
+  const boardDescription = content.boardDescription || s.governance_board_description || ""
+  const responsibilities = content.responsibilities || s.governance_responsibilities || ""
+  const execDirectorIntro = content.executiveDirector || s.governance_exec_director_intro || ""
 
   const responsibilityList = responsibilities.split('\n').filter(Boolean)
+
+  const governanceValues = parseJSON<{ icon: string; title: string; description: string }[]>(
+    s.governance_values,
+    defaultGovernanceValues
+  )
 
   return (
     <>
       <SimpleHero
-        headline="Governance & Accountability"
-        subheadline="We operate with strong governance, ethical practice, and outcome tracking to sustain credibility and partner confidence."
+        headline={s.governance_hero_headline || "Governance & Accountability"}
+        subheadline={s.governance_hero_subheadline || "We operate with strong governance, ethical practice, and outcome tracking to sustain credibility and partner confidence."}
       />
 
       {/* Governance Values */}
       <section className="py-12 bg-white border-b">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {governanceValues.map((value, index) => (
-              <div key={index} className="flex flex-col items-center text-center">
-                <div className="w-16 h-16 rounded-full bg-aodi-teal/10 flex items-center justify-center mb-4">
-                  <value.icon className="w-8 h-8 text-aodi-teal" />
+            {governanceValues.map((value, index) => {
+              const IconComponent = iconMap[value.icon] || Shield
+              return (
+                <div key={index} className="flex flex-col items-center text-center">
+                  <div className="w-16 h-16 rounded-full bg-aodi-teal/10 flex items-center justify-center mb-4">
+                    <IconComponent className="w-8 h-8 text-aodi-teal" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-charcoal mb-2">{value.title}</h3>
+                  <p className="text-slate text-sm">{value.description}</p>
                 </div>
-                <h3 className="text-lg font-semibold text-charcoal mb-2">{value.title}</h3>
-                <p className="text-slate text-sm">{value.description}</p>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </div>
       </section>
@@ -271,7 +264,7 @@ export default async function GovernancePage() {
                   </div>
                   <div className="flex-1 text-center md:text-left">
                     <p className="text-slate leading-relaxed" data-testid="text-executive-director-description">
-                      {executiveDirector}
+                      {execDirectorIntro}
                     </p>
                     <p className="text-sm text-slate/70 italic mt-4">
                       The Executive Director serves on the Board as a non-voting member to support alignment between governance and operations.
