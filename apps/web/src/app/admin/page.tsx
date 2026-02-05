@@ -321,6 +321,8 @@ export default function AdminDashboardPage() {
   const [impactMetrics, setImpactMetrics] = useState<ImpactMetric[]>([])
   const [impactLoading, setImpactLoading] = useState(false)
   const [editingMetric, setEditingMetric] = useState<ImpactMetric | null>(null)
+  const [showMetricForm, setShowMetricForm] = useState(false)
+  const [newMetricData, setNewMetricData] = useState({ category: "Beneficiaries & Reach", label: "", value: "", unit: "", period: "Since inception", description: "", showOnHomepage: false, isActive: true })
   
   const [programsList, setProgramsList] = useState<Program[]>([])
   const [programsLoading, setProgramsLoading] = useState(false)
@@ -955,6 +957,35 @@ export default function AdminDashboardPage() {
       }
     } catch (error) {
       console.error("Error updating metric:", error)
+    }
+  }
+
+  const handleCreateMetric = async () => {
+    try {
+      const response = await fetch("/api/admin/impact-metrics", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...newMetricData, displayOrder: impactMetrics.length + 1 })
+      })
+      if (response.ok) {
+        setShowMetricForm(false)
+        setNewMetricData({ category: "Beneficiaries & Reach", label: "", value: "", unit: "", period: "Since inception", description: "", showOnHomepage: false, isActive: true })
+        await fetchImpactData()
+      }
+    } catch (error) {
+      console.error("Error creating metric:", error)
+    }
+  }
+
+  const handleDeleteMetric = async (id: number) => {
+    if (!confirm("Are you sure you want to delete this impact metric?")) return
+    try {
+      const response = await fetch(`/api/admin/impact-metrics/${id}`, { method: "DELETE" })
+      if (response.ok) {
+        await fetchImpactData()
+      }
+    } catch (error) {
+      console.error("Error deleting metric:", error)
     }
   }
 
@@ -2042,17 +2073,137 @@ export default function AdminDashboardPage() {
 
           <div className={activeTab === "impact" ? "block" : "hidden"}>
             <Card>
-              <CardHeader>
-                <CardTitle>Impact Metrics</CardTitle>
-                <p className="text-sm text-gray-500">
-                  Manage AODI&apos;s impact metrics displayed on the website. These numbers appear on the homepage and impact page.
-                </p>
+              <CardHeader className="flex flex-row items-center justify-between gap-4 flex-wrap">
+                <div>
+                  <CardTitle>Impact Metrics</CardTitle>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Manage AODI&apos;s impact metrics displayed on the website. These numbers appear on the homepage and impact page.
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={fetchImpactData} data-testid="button-refresh-metrics">
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Refresh
+                  </Button>
+                  <Button onClick={() => setShowMetricForm(true)} data-testid="button-add-metric">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Metric
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
+                {showMetricForm && (
+                  <div className="border rounded-lg p-4 mb-6 bg-gray-50">
+                    <h3 className="font-semibold text-[#0F3D2E] mb-4">Add New Impact Metric</h3>
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-sm font-medium text-gray-700 mb-1 block">Category</label>
+                          <select
+                            value={newMetricData.category}
+                            onChange={(e) => setNewMetricData({ ...newMetricData, category: e.target.value })}
+                            className="w-full p-2 border rounded"
+                            data-testid="select-new-metric-category"
+                          >
+                            <option value="Beneficiaries & Reach">Beneficiaries &amp; Reach</option>
+                            <option value="Education & Capacity Building">Education &amp; Capacity Building</option>
+                            <option value="Mentorship & Career Advancement">Mentorship &amp; Career Advancement</option>
+                            <option value="Programs & Partnerships">Programs &amp; Partnerships</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium text-gray-700 mb-1 block">Value</label>
+                          <input
+                            type="text"
+                            value={newMetricData.value}
+                            onChange={(e) => setNewMetricData({ ...newMetricData, value: e.target.value })}
+                            className="w-full p-2 border rounded"
+                            placeholder="e.g., 27,000+"
+                            data-testid="input-new-metric-value"
+                          />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-sm font-medium text-gray-700 mb-1 block">Label</label>
+                          <input
+                            type="text"
+                            value={newMetricData.label}
+                            onChange={(e) => setNewMetricData({ ...newMetricData, label: e.target.value })}
+                            className="w-full p-2 border rounded"
+                            placeholder="e.g., Young People Reached"
+                            data-testid="input-new-metric-label"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium text-gray-700 mb-1 block">Unit</label>
+                          <input
+                            type="text"
+                            value={newMetricData.unit}
+                            onChange={(e) => setNewMetricData({ ...newMetricData, unit: e.target.value })}
+                            className="w-full p-2 border rounded"
+                            placeholder="e.g., beneficiaries, students"
+                            data-testid="input-new-metric-unit"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-700 mb-1 block">Period</label>
+                        <input
+                          type="text"
+                          value={newMetricData.period}
+                          onChange={(e) => setNewMetricData({ ...newMetricData, period: e.target.value })}
+                          className="w-full p-2 border rounded"
+                          placeholder="e.g., Since inception"
+                          data-testid="input-new-metric-period"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-700 mb-1 block">Description</label>
+                        <textarea
+                          value={newMetricData.description}
+                          onChange={(e) => setNewMetricData({ ...newMetricData, description: e.target.value })}
+                          className="w-full p-2 border rounded text-sm"
+                          placeholder="Brief description of this metric"
+                          rows={2}
+                          data-testid="textarea-new-metric-desc"
+                        />
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <label className="flex items-center gap-2 text-sm">
+                          <input
+                            type="checkbox"
+                            checked={newMetricData.showOnHomepage}
+                            onChange={(e) => setNewMetricData({ ...newMetricData, showOnHomepage: e.target.checked })}
+                            data-testid="checkbox-new-metric-homepage"
+                          />
+                          Show on Homepage
+                        </label>
+                        <label className="flex items-center gap-2 text-sm">
+                          <input
+                            type="checkbox"
+                            checked={newMetricData.isActive}
+                            onChange={(e) => setNewMetricData({ ...newMetricData, isActive: e.target.checked })}
+                            data-testid="checkbox-new-metric-active"
+                          />
+                          Active
+                        </label>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button size="sm" onClick={handleCreateMetric} disabled={!newMetricData.label || !newMetricData.value} data-testid="button-save-new-metric">
+                          Create Metric
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => setShowMetricForm(false)} data-testid="button-cancel-new-metric">
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
                 {impactLoading ? (
                   <p className="text-center py-8 text-gray-500">Loading metrics...</p>
                 ) : impactMetrics.length === 0 ? (
-                  <p className="text-center py-8 text-gray-500">No impact metrics found.</p>
+                  <p className="text-center py-8 text-gray-500">No impact metrics found. Click &quot;Add Metric&quot; to create one.</p>
                 ) : (
                   <div className="space-y-6">
                     {["Beneficiaries & Reach", "Education & Capacity Building", "Mentorship & Career Advancement", "Programs & Partnerships"].map((category) => {
@@ -2153,14 +2304,25 @@ export default function AdminDashboardPage() {
                                         )}
                                       </div>
                                     </div>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => setEditingMetric(metric)}
-                                      data-testid={`button-edit-metric-${metric.id}`}
-                                    >
-                                      <Edit className="w-4 h-4" />
-                                    </Button>
+                                    <div className="flex gap-1">
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => setEditingMetric(metric)}
+                                        data-testid={`button-edit-metric-${metric.id}`}
+                                      >
+                                        <Edit className="w-4 h-4" />
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => handleDeleteMetric(metric.id)}
+                                        className="text-red-600"
+                                        data-testid={`button-delete-metric-${metric.id}`}
+                                      >
+                                        <Trash2 className="w-4 h-4" />
+                                      </Button>
+                                    </div>
                                   </>
                                 )}
                               </div>
