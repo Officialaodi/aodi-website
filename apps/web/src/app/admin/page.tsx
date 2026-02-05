@@ -3522,12 +3522,11 @@ function ProgramFormModal({
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-            <textarea
+            <RichTextEditor
               value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full p-2 border rounded-lg min-h-[100px]"
-              placeholder="Full description for program detail page"
-              data-testid="textarea-program-description"
+              onChange={(value) => setFormData({ ...formData, description: value })}
+              placeholder="Full description for program detail page with formatting..."
+              minHeight="150px"
             />
           </div>
 

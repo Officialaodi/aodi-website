@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { db } from "@/lib/db"
-import { permissions, roles, rolePermissions, forms, formFields } from "@/lib/schema"
+import { permissions, roles, rolePermissions, forms, formFields, integrationSettings } from "@/lib/schema"
 import { eq } from "drizzle-orm"
 
 const DEFAULT_PERMISSIONS = [
@@ -225,6 +225,24 @@ export async function POST(request: Request) {
       }
     }
     results.formsCreated = formsCreated
+
+    const DEFAULT_INTEGRATIONS = [
+      { integrationKey: "sendgrid", displayName: "SendGrid", description: "Email delivery service for transactional and marketing emails", secretsRequired: "SENDGRID_API_KEY", category: "email" },
+      { integrationKey: "smtp", displayName: "SMTP Email", description: "Standard SMTP email configuration for sending emails", secretsRequired: "SMTP_HOST,SMTP_PORT,SMTP_USER,SMTP_PASS", category: "email" },
+      { integrationKey: "google_analytics", displayName: "Google Analytics 4", description: "Website traffic analytics and user behavior tracking", secretsRequired: "NEXT_PUBLIC_GA_MEASUREMENT_ID", category: "analytics" },
+      { integrationKey: "paystack", displayName: "Paystack", description: "African payment gateway for processing donations and payments", secretsRequired: "PAYSTACK_SECRET_KEY,NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY", category: "payments" },
+      { integrationKey: "paypal", displayName: "PayPal", description: "Global payment gateway for international donations", secretsRequired: "PAYPAL_CLIENT_ID,PAYPAL_CLIENT_SECRET", category: "payments" },
+      { integrationKey: "hcaptcha", displayName: "hCaptcha", description: "Bot protection and spam prevention for website forms", secretsRequired: "HCAPTCHA_SECRET_KEY,NEXT_PUBLIC_HCAPTCHA_SITE_KEY", category: "security" },
+      { integrationKey: "sentry", displayName: "Sentry", description: "Application error monitoring and performance tracking", secretsRequired: "SENTRY_DSN,SENTRY_AUTH_TOKEN", category: "monitoring" },
+    ]
+
+    const existingIntegrations = await db.select({ integrationKey: integrationSettings.integrationKey }).from(integrationSettings)
+    const existingIntegrationKeys = new Set(existingIntegrations.map(i => i.integrationKey))
+    const newIntegrations = DEFAULT_INTEGRATIONS.filter(i => !existingIntegrationKeys.has(i.integrationKey))
+    if (newIntegrations.length > 0) {
+      await db.insert(integrationSettings).values(newIntegrations)
+    }
+    results.integrationsCreated = newIntegrations.length
 
     return NextResponse.json({
       success: true,

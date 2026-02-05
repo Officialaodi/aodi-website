@@ -64,6 +64,7 @@ const navGroups: NavGroup[] = [
   {
     label: "Content",
     icon: BookOpen,
+    defaultOpen: true,
     items: [
       { label: "Programs", value: "programs", icon: BookOpen },
       { label: "Stories", value: "stories", icon: BookMarked },
@@ -93,6 +94,7 @@ const navGroups: NavGroup[] = [
   {
     label: "Settings",
     icon: Settings,
+    defaultOpen: true,
     items: [
       { label: "Site Settings", value: "site-settings", icon: Settings },
       { label: "Forms", value: "forms", icon: List },
