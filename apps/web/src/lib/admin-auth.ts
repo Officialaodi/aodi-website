@@ -92,15 +92,78 @@ export async function getUserByEmail(email: string) {
   return user
 }
 
-export async function createInitialSuperAdmin(email: string, password: string, fullName: string) {
-  const [superAdminRole] = await db
+const DEFAULT_PERMISSIONS = [
+  { key: "applications.view", name: "View Applications", category: "Applications", description: "View all applications" },
+  { key: "applications.manage", name: "Manage Applications", category: "Applications", description: "Update application status and details" },
+  { key: "applications.delete", name: "Delete Applications", category: "Applications", description: "Delete applications" },
+  { key: "crm.view", name: "View CRM", category: "CRM", description: "Access CRM contacts and data" },
+  { key: "crm.manage", name: "Manage CRM", category: "CRM", description: "Edit contacts and send emails" },
+  { key: "content.view", name: "View Content", category: "Content", description: "View all website content" },
+  { key: "content.manage", name: "Manage Content", category: "Content", description: "Edit website content" },
+  { key: "governance.view", name: "View Governance", category: "Governance", description: "View governance information" },
+  { key: "governance.manage", name: "Manage Governance", category: "Governance", description: "Edit governance content" },
+  { key: "impact.view", name: "View Impact", category: "Impact", description: "View impact metrics" },
+  { key: "impact.manage", name: "Manage Impact", category: "Impact", description: "Edit impact metrics" },
+  { key: "users.view", name: "View Users", category: "User Management", description: "View admin users" },
+  { key: "users.manage", name: "Manage Users", category: "User Management", description: "Create and edit admin users" },
+  { key: "users.delete", name: "Delete Users", category: "User Management", description: "Delete admin users" },
+  { key: "roles.view", name: "View Roles", category: "User Management", description: "View roles and permissions" },
+  { key: "roles.manage", name: "Manage Roles", category: "User Management", description: "Create and edit roles" },
+  { key: "analytics.view", name: "View Analytics", category: "Analytics", description: "View website analytics" },
+  { key: "settings.view", name: "View Settings", category: "Settings", description: "View system settings" },
+  { key: "settings.manage", name: "Manage Settings", category: "Settings", description: "Edit system settings" },
+  { key: "forms.view", name: "View Forms", category: "Forms", description: "View form configurations" },
+  { key: "forms.manage", name: "Manage Forms", category: "Forms", description: "Create and edit forms" },
+  { key: "events.view", name: "View Events", category: "Events", description: "View events" },
+  { key: "events.manage", name: "Manage Events", category: "Events", description: "Create and edit events" },
+]
+
+async function ensureRolesAndPermissions(): Promise<number> {
+  const existingPermissions = await db.select({ key: permissions.key }).from(permissions)
+  const existingKeys = new Set(existingPermissions.map(p => p.key))
+  
+  const newPermissions = DEFAULT_PERMISSIONS.filter(p => !existingKeys.has(p.key))
+  if (newPermissions.length > 0) {
+    await db.insert(permissions).values(newPermissions)
+  }
+
+  let [superAdminRole] = await db
     .select()
     .from(roles)
     .where(eq(roles.name, "Super Admin"))
 
   if (!superAdminRole) {
-    throw new Error("Super Admin role not found. Please run database seed first.")
+    const [newRole] = await db
+      .insert(roles)
+      .values({
+        name: "Super Admin",
+        description: "Full system access with all permissions",
+        isSystemRole: true,
+      })
+      .returning()
+    superAdminRole = newRole
   }
+
+  const allPermissions = await db.select({ key: permissions.key }).from(permissions)
+  const existingRolePerms = await db
+    .select({ permissionKey: rolePermissions.permissionKey })
+    .from(rolePermissions)
+    .where(eq(rolePermissions.roleId, superAdminRole.id))
+  
+  const existingRolePermKeys = new Set(existingRolePerms.map(p => p.permissionKey))
+  const newRolePerms = allPermissions
+    .filter(p => !existingRolePermKeys.has(p.key))
+    .map(p => ({ roleId: superAdminRole.id, permissionKey: p.key }))
+  
+  if (newRolePerms.length > 0) {
+    await db.insert(rolePermissions).values(newRolePerms)
+  }
+
+  return superAdminRole.id
+}
+
+export async function createInitialSuperAdmin(email: string, password: string, fullName: string) {
+  const superAdminRoleId = await ensureRolesAndPermissions()
 
   const existingUser = await getUserByEmail(email)
   if (existingUser) {
@@ -115,7 +178,7 @@ export async function createInitialSuperAdmin(email: string, password: string, f
       email: email.toLowerCase(),
       passwordHash,
       fullName,
-      roleId: superAdminRole.id,
+      roleId: superAdminRoleId,
       isActive: true,
     })
     .returning()
