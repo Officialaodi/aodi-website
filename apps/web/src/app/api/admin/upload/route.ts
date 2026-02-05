@@ -6,8 +6,12 @@ import path from "path"
 import crypto from "crypto"
 
 const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads")
-const MAX_FILE_SIZE = 5 * 1024 * 1024
-const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"]
+const MAX_IMAGE_SIZE = 10 * 1024 * 1024
+const MAX_VIDEO_SIZE = 100 * 1024 * 1024
+const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml"]
+const ALLOWED_VIDEO_TYPES = ["video/mp4", "video/webm", "video/ogg", "video/quicktime"]
+const ALLOWED_DOCUMENT_TYPES = ["application/pdf"]
+const ALL_ALLOWED_TYPES = [...ALLOWED_IMAGE_TYPES, ...ALLOWED_VIDEO_TYPES, ...ALLOWED_DOCUMENT_TYPES]
 const SESSION_SECRET = process.env.SESSION_SECRET
 
 if (!SESSION_SECRET) {
@@ -39,12 +43,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 })
     }
 
-    if (file.size > MAX_FILE_SIZE) {
-      return NextResponse.json({ error: "File too large. Maximum size is 5MB" }, { status: 400 })
+    if (!ALL_ALLOWED_TYPES.includes(file.type)) {
+      return NextResponse.json({ error: "File type not allowed. Supported: images (JPEG, PNG, GIF, WebP, SVG), videos (MP4, WebM, OGG), and PDFs" }, { status: 400 })
     }
 
-    if (!ALLOWED_TYPES.includes(file.type)) {
-      return NextResponse.json({ error: "File type not allowed" }, { status: 400 })
+    const isVideo = ALLOWED_VIDEO_TYPES.includes(file.type)
+    const maxSize = isVideo ? MAX_VIDEO_SIZE : MAX_IMAGE_SIZE
+    const maxSizeLabel = isVideo ? "100MB" : "10MB"
+    
+    if (file.size > maxSize) {
+      return NextResponse.json({ error: `File too large. Maximum size for ${isVideo ? 'videos' : 'images/documents'} is ${maxSizeLabel}` }, { status: 400 })
     }
 
     const bytes = await file.arrayBuffer()
@@ -61,12 +69,15 @@ export async function POST(request: Request) {
     await writeFile(filepath, buffer)
 
     const url = `/uploads/${filename}`
+    const mediaType = isVideo ? 'video' : (ALLOWED_DOCUMENT_TYPES.includes(file.type) ? 'document' : 'image')
 
     return NextResponse.json({ 
       url,
       filename,
+      originalName: file.name,
       size: file.size,
-      type: file.type
+      type: file.type,
+      mediaType
     })
   } catch (error) {
     console.error("Upload error:", error)
