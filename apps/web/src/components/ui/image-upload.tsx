@@ -1,8 +1,8 @@
 "use client"
 
-import { useState, useRef, useCallback } from "react"
+import { useState, useRef, useCallback, useId } from "react"
 import { Button } from "@/components/ui/button"
-import { Upload, X, Image as ImageIcon, Loader2 } from "lucide-react"
+import { Upload, X, Image as ImageIcon, Loader2, RefreshCw } from "lucide-react"
 
 interface ImageUploadProps {
   value: string
@@ -23,7 +23,10 @@ export function ImageUpload({
   const [error, setError] = useState<string | null>(null)
   const [showUrlInput, setShowUrlInput] = useState(false)
   const [urlInput, setUrlInput] = useState("")
+  const [imageLoadFailed, setImageLoadFailed] = useState(false)
+  const [retryCount, setRetryCount] = useState(0)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const uniqueId = useId()
 
   const handleFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -34,13 +37,14 @@ export function ImageUpload({
       return
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      setError("File size must be less than 5MB")
+    if (file.size > 10 * 1024 * 1024) {
+      setError("File size must be less than 10MB")
       return
     }
 
     setUploading(true)
     setError(null)
+    setImageLoadFailed(false)
 
     try {
       const formData = new FormData()
@@ -52,11 +56,16 @@ export function ImageUpload({
       })
 
       if (!response.ok) {
-        const data = await response.json()
-        throw new Error(data.error || "Upload failed")
+        let errorMsg = "Upload failed"
+        try {
+          const data = await response.json()
+          errorMsg = data.error || errorMsg
+        } catch {}
+        throw new Error(errorMsg)
       }
 
       const data = await response.json()
+      setRetryCount(0)
       onChange(data.url)
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed")
@@ -70,6 +79,9 @@ export function ImageUpload({
 
   const handleUrlSubmit = () => {
     if (urlInput.trim()) {
+      setImageLoadFailed(false)
+      setRetryCount(0)
+      setError(null)
       onChange(urlInput.trim())
       setUrlInput("")
       setShowUrlInput(false)
@@ -79,28 +91,79 @@ export function ImageUpload({
   const handleRemove = () => {
     onChange("")
     setError(null)
+    setImageLoadFailed(false)
+    setRetryCount(0)
   }
+
+  const handleImageError = () => {
+    setImageLoadFailed(true)
+    if (retryCount === 0) {
+      setError("Failed to load image preview. The image may still be saved correctly.")
+    }
+  }
+
+  const handleRetryLoad = () => {
+    setImageLoadFailed(false)
+    setError(null)
+    setRetryCount(prev => prev + 1)
+  }
+
+  const imgSrc = value ? (retryCount > 0 ? `${value}?retry=${retryCount}` : value) : ""
 
   return (
     <div className={`space-y-2 ${className}`}>
       {value ? (
         <div className="relative inline-block">
-          <img
-            src={value}
-            alt="Uploaded image"
-            className="max-w-full h-auto max-h-48 rounded-lg border object-cover"
-            onError={() => setError("Failed to load image")}
-          />
-          <Button
-            type="button"
-            variant="destructive"
-            size="icon"
-            className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
-            onClick={handleRemove}
-            data-testid="button-remove-image"
-          >
-            <X className="w-4 h-4" />
-          </Button>
+          {imageLoadFailed ? (
+            <div className="flex items-center gap-3 p-4 border rounded-lg bg-gray-50">
+              <ImageIcon className="w-8 h-8 text-gray-400 flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm text-gray-600 truncate">{value}</p>
+                <p className="text-xs text-gray-400 mt-1">Image preview unavailable</p>
+              </div>
+              <div className="flex gap-1">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRetryLoad}
+                  data-testid="button-retry-image"
+                >
+                  <RefreshCw className="w-3 h-3 mr-1" />
+                  Retry
+                </Button>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="sm"
+                  onClick={handleRemove}
+                  data-testid="button-remove-image"
+                >
+                  <X className="w-3 h-3 mr-1" />
+                  Remove
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <img
+                src={imgSrc}
+                alt="Uploaded image"
+                className="max-w-full h-auto max-h-48 rounded-lg border object-cover"
+                onError={handleImageError}
+              />
+              <Button
+                type="button"
+                variant="destructive"
+                size="icon"
+                className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
+                onClick={handleRemove}
+                data-testid="button-remove-image"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </>
+          )}
         </div>
       ) : (
         <div className="border-2 border-dashed rounded-lg p-6 text-center bg-gray-50">
@@ -110,7 +173,7 @@ export function ImageUpload({
             accept={accept}
             onChange={handleFileSelect}
             className="hidden"
-            id="image-upload"
+            id={`image-upload-${uniqueId}`}
             data-testid="input-file-upload"
           />
           
@@ -179,7 +242,7 @@ export function ImageUpload({
       )}
 
       {error && (
-        <p className="text-sm text-red-500" data-testid="text-upload-error">{error}</p>
+        <p className="text-sm text-yellow-600" data-testid="text-upload-error">{error}</p>
       )}
     </div>
   )
