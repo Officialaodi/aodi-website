@@ -28,7 +28,7 @@ export function Hero({
             className="absolute inset-0 bg-cover bg-center bg-no-repeat"
             style={{ backgroundImage: `url(${backgroundImage})` }}
           />
-          <div className="absolute inset-0 bg-gradient-to-br from-aodi-green/85 via-aodi-green/70 to-aodi-teal/60" />
+          <div className="absolute inset-0 bg-gradient-to-br from-aodi-green/70 via-aodi-green/50 to-aodi-teal/40" />
         </>
       ) : (
         <div className="absolute inset-0 bg-gradient-to-br from-aodi-green via-aodi-green to-aodi-teal/30" />
