@@ -6,10 +6,8 @@ import { siteSettings } from "@/lib/schema"
 import { eq } from "drizzle-orm"
 import { auditLog } from "@/lib/audit-log"
 
-const SESSION_SECRET = process.env.SESSION_SECRET
-
-if (!SESSION_SECRET) {
-  console.error("SESSION_SECRET environment variable is required for site settings endpoint")
+function getSessionSecret() {
+  return process.env.SESSION_SECRET
 }
 
 const DEFAULT_SETTINGS = [
@@ -86,15 +84,16 @@ export async function GET() {
     const cookieStore = await cookies()
     const sessionCookie = cookieStore.get("admin_session")
     
-    if (!sessionCookie) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
-    }
-    
-    if (!SESSION_SECRET) {
+    const sessionSecret = getSessionSecret()
+    if (!sessionSecret) {
       return NextResponse.json({ error: "Server configuration error" }, { status: 500 })
     }
 
-    const session = verifySignedToken(sessionCookie.value, SESSION_SECRET)
+    if (!sessionCookie) {
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
+    }
+
+    const session = verifySignedToken(sessionCookie.value, sessionSecret)
     if (!session) {
       return NextResponse.json({ error: "Invalid session" }, { status: 401 })
     }
@@ -123,15 +122,16 @@ export async function PATCH(request: Request) {
     const cookieStore = await cookies()
     const sessionCookie = cookieStore.get("admin_session")
     
-    if (!sessionCookie) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
-    }
-    
-    if (!SESSION_SECRET) {
+    const sessionSecret = getSessionSecret()
+    if (!sessionSecret) {
       return NextResponse.json({ error: "Server configuration error" }, { status: 500 })
     }
 
-    const session = verifySignedToken(sessionCookie.value, SESSION_SECRET)
+    if (!sessionCookie) {
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
+    }
+
+    const session = verifySignedToken(sessionCookie.value, sessionSecret)
     if (!session) {
       return NextResponse.json({ error: "Invalid session" }, { status: 401 })
     }
@@ -180,15 +180,16 @@ export async function POST(request: Request) {
     const cookieStore = await cookies()
     const sessionCookie = cookieStore.get("admin_session")
     
-    if (!sessionCookie) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
-    }
-    
-    if (!SESSION_SECRET) {
+    const sessionSecret = getSessionSecret()
+    if (!sessionSecret) {
       return NextResponse.json({ error: "Server configuration error" }, { status: 500 })
     }
 
-    const session = verifySignedToken(sessionCookie.value, SESSION_SECRET)
+    if (!sessionCookie) {
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
+    }
+
+    const session = verifySignedToken(sessionCookie.value, sessionSecret)
     if (!session) {
       return NextResponse.json({ error: "Invalid session" }, { status: 401 })
     }

@@ -12,26 +12,22 @@ const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp
 const ALLOWED_VIDEO_TYPES = ["video/mp4", "video/webm", "video/ogg", "video/quicktime"]
 const ALLOWED_DOCUMENT_TYPES = ["application/pdf"]
 const ALL_ALLOWED_TYPES = [...ALLOWED_IMAGE_TYPES, ...ALLOWED_VIDEO_TYPES, ...ALLOWED_DOCUMENT_TYPES]
-const SESSION_SECRET = process.env.SESSION_SECRET
-
-if (!SESSION_SECRET) {
-  console.error("SESSION_SECRET environment variable is required for upload endpoint")
-}
 
 export async function POST(request: Request) {
   try {
+    const sessionSecret = process.env.SESSION_SECRET
+    if (!sessionSecret) {
+      return NextResponse.json({ error: "Server configuration error" }, { status: 500 })
+    }
+
     const cookieStore = await cookies()
     const sessionCookie = cookieStore.get("admin_session")
     
     if (!sessionCookie) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
     }
-    
-    if (!SESSION_SECRET) {
-      return NextResponse.json({ error: "Server configuration error" }, { status: 500 })
-    }
 
-    const session = verifySignedToken(sessionCookie.value, SESSION_SECRET)
+    const session = verifySignedToken(sessionCookie.value, sessionSecret)
     if (!session) {
       return NextResponse.json({ error: "Invalid session" }, { status: 401 })
     }

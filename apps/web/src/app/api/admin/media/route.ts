@@ -5,18 +5,21 @@ import { db } from "@/lib/db"
 import { mediaLibrary } from "@/lib/schema"
 import { desc } from "drizzle-orm"
 
-const SESSION_SECRET = process.env.SESSION_SECRET
-
 export async function GET() {
   try {
+    const sessionSecret = process.env.SESSION_SECRET
+    if (!sessionSecret) {
+      return NextResponse.json({ error: "Server configuration error" }, { status: 500 })
+    }
+
     const cookieStore = await cookies()
     const sessionCookie = cookieStore.get("admin_session")
     
-    if (!sessionCookie || !SESSION_SECRET) {
+    if (!sessionCookie) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
     }
 
-    const session = verifySignedToken(sessionCookie.value, SESSION_SECRET)
+    const session = verifySignedToken(sessionCookie.value, sessionSecret)
     if (!session) {
       return NextResponse.json({ error: "Invalid session" }, { status: 401 })
     }
@@ -38,11 +41,16 @@ export async function POST(request: Request) {
     const cookieStore = await cookies()
     const sessionCookie = cookieStore.get("admin_session")
     
-    if (!sessionCookie || !SESSION_SECRET) {
+    const sessionSecret = process.env.SESSION_SECRET
+    if (!sessionSecret) {
+      return NextResponse.json({ error: "Server configuration error" }, { status: 500 })
+    }
+
+    if (!sessionCookie) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
     }
 
-    const session = verifySignedToken(sessionCookie.value, SESSION_SECRET)
+    const session = verifySignedToken(sessionCookie.value, sessionSecret)
     if (!session) {
       return NextResponse.json({ error: "Invalid session" }, { status: 401 })
     }

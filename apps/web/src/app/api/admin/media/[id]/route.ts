@@ -7,23 +7,25 @@ import { eq } from "drizzle-orm"
 import { unlink } from "fs/promises"
 import path from "path"
 
-const SESSION_SECRET = process.env.SESSION_SECRET
+async function verifyAuth() {
+  const sessionSecret = process.env.SESSION_SECRET
+  if (!sessionSecret) return null
+
+  const cookieStore = await cookies()
+  const sessionCookie = cookieStore.get("admin_session")
+  if (!sessionCookie) return null
+
+  return verifySignedToken(sessionCookie.value, sessionSecret)
+}
 
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const cookieStore = await cookies()
-    const sessionCookie = cookieStore.get("admin_session")
-    
-    if (!sessionCookie || !SESSION_SECRET) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
-    }
-
-    const session = verifySignedToken(sessionCookie.value, SESSION_SECRET)
+    const session = await verifyAuth()
     if (!session) {
-      return NextResponse.json({ error: "Invalid session" }, { status: 401 })
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
     }
 
     const { id } = await params
@@ -49,16 +51,9 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const cookieStore = await cookies()
-    const sessionCookie = cookieStore.get("admin_session")
-    
-    if (!sessionCookie || !SESSION_SECRET) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
-    }
-
-    const session = verifySignedToken(sessionCookie.value, SESSION_SECRET)
+    const session = await verifyAuth()
     if (!session) {
-      return NextResponse.json({ error: "Invalid session" }, { status: 401 })
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
     }
 
     const { id } = await params
@@ -91,16 +86,9 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const cookieStore = await cookies()
-    const sessionCookie = cookieStore.get("admin_session")
-    
-    if (!sessionCookie || !SESSION_SECRET) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
-    }
-
-    const session = verifySignedToken(sessionCookie.value, SESSION_SECRET)
+    const session = await verifyAuth()
     if (!session) {
-      return NextResponse.json({ error: "Invalid session" }, { status: 401 })
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
     }
 
     const { id } = await params
