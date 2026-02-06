@@ -115,12 +115,20 @@ export async function DELETE(
       return NextResponse.json({ error: "Media not found" }, { status: 404 })
     }
 
-    if (item.url.startsWith("/uploads/")) {
-      const filePath = path.join(process.cwd(), "public", item.url)
-      try {
-        await unlink(filePath)
-      } catch (e) {
-        console.warn("Could not delete file:", filePath, e)
+    if (item.url.startsWith("/api/uploads/") || item.url.startsWith("/uploads/")) {
+      const rawFilename = item.url.split("/").pop()
+      const filename = rawFilename ? path.basename(rawFilename) : null
+      if (filename) {
+        const newPath = path.join(process.cwd(), "uploads", filename)
+        const oldPath = path.join(process.cwd(), "public", "uploads", filename)
+        try {
+          await unlink(newPath)
+        } catch {
+          try {
+            await unlink(oldPath)
+          } catch {
+          }
+        }
       }
     }
 

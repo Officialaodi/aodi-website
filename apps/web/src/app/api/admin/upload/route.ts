@@ -5,7 +5,7 @@ import { writeFile, mkdir } from "fs/promises"
 import path from "path"
 import crypto from "crypto"
 
-const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads")
+const UPLOAD_DIR = path.join(process.cwd(), "uploads")
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024
 const MAX_VIDEO_SIZE = 100 * 1024 * 1024
 const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml"]
@@ -68,7 +68,7 @@ export async function POST(request: Request) {
     const filepath = path.join(UPLOAD_DIR, filename)
     await writeFile(filepath, buffer)
 
-    const url = `/uploads/${filename}`
+    const url = `/api/uploads/${filename}`
     const mediaType = isVideo ? 'video' : (ALLOWED_DOCUMENT_TYPES.includes(file.type) ? 'document' : 'image')
 
     return NextResponse.json({ 
