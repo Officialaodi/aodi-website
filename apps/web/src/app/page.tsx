@@ -41,6 +41,7 @@ export default async function HomePage() {
         ctaPrimaryUrl={s.hero_cta_link || "/get-involved/partner"}
         ctaSecondaryText={s.hero_cta2_text || "Join as a Mentor"}
         ctaSecondaryUrl={s.hero_cta2_link || "/get-involved/mentor"}
+        backgroundImage={s.hero_image}
       />
 
       {trustItems.length > 0 && (

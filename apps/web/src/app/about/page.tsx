@@ -47,6 +47,7 @@ export default async function AboutPage() {
       <SimpleHero
         headline={s.about_hero_headline ?? "About AODI"}
         subheadline={s.about_hero_subheadline ?? "Africa of Our Dream Education Initiative (AODI) is a globally governed leadership and talent development institution supporting high-potential students and early-career professionals across Africa."}
+        backgroundImage={s.about_image}
       />
 
       {/* Mission */}

@@ -1,12 +1,22 @@
 interface SimpleHeroProps {
   headline: string
   subheadline: string
+  backgroundImage?: string
 }
 
-export function SimpleHero({ headline, subheadline }: SimpleHeroProps) {
+export function SimpleHero({ headline, subheadline, backgroundImage }: SimpleHeroProps) {
   return (
-    <section className="bg-aodi-green py-16 md:py-20">
-      <div className="mx-auto max-w-7xl px-6 lg:px-8">
+    <section className="relative bg-aodi-green py-16 md:py-20 overflow-hidden">
+      {backgroundImage && (
+        <>
+          <div
+            className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+            style={{ backgroundImage: `url(${backgroundImage})` }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-br from-aodi-green/85 via-aodi-green/70 to-aodi-teal/60" />
+        </>
+      )}
+      <div className="relative mx-auto max-w-7xl px-6 lg:px-8">
         <div className="mx-auto max-w-3xl text-center">
           <h1 className="text-3xl font-bold tracking-tight text-white sm:text-4xl lg:text-5xl" data-testid="text-page-headline">
             {headline}

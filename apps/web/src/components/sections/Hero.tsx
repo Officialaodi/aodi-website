@@ -8,6 +8,7 @@ interface HeroProps {
   ctaPrimaryUrl?: string
   ctaSecondaryText?: string
   ctaSecondaryUrl?: string
+  backgroundImage?: string
 }
 
 export function Hero({
@@ -17,10 +18,21 @@ export function Hero({
   ctaPrimaryUrl,
   ctaSecondaryText,
   ctaSecondaryUrl,
+  backgroundImage,
 }: HeroProps) {
   return (
-    <section className="relative bg-aodi-green py-20 md:py-28 lg:py-32">
-      <div className="absolute inset-0 bg-gradient-to-br from-aodi-green via-aodi-green to-aodi-teal/30" />
+    <section className="relative bg-aodi-green py-20 md:py-28 lg:py-32 overflow-hidden">
+      {backgroundImage ? (
+        <>
+          <div
+            className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+            style={{ backgroundImage: `url(${backgroundImage})` }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-br from-aodi-green/85 via-aodi-green/70 to-aodi-teal/60" />
+        </>
+      ) : (
+        <div className="absolute inset-0 bg-gradient-to-br from-aodi-green via-aodi-green to-aodi-teal/30" />
+      )}
       <div className="relative mx-auto max-w-7xl px-6 lg:px-8">
         <div className="mx-auto max-w-3xl text-center">
           <h1 className="text-4xl font-bold tracking-tight text-white sm:text-5xl lg:text-6xl" data-testid="text-hero-headline">
