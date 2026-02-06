@@ -3,7 +3,7 @@ import type { Metadata } from 'next'
 import { SimpleHero } from '@/components/sections/SimpleHero'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { getCachedEvents } from '@/lib/cache'
+import { getCachedEvents, getCachedSiteSettings } from '@/lib/cache'
 import { Calendar, MapPin, Video, Users } from 'lucide-react'
 
 export const metadata: Metadata = {
@@ -39,7 +39,10 @@ function getModeIcon(mode: string | null) {
 }
 
 export default async function EventsPage() {
-  const eventsList = await getEvents()
+  const [eventsList, settings] = await Promise.all([
+    getEvents(),
+    getCachedSiteSettings(),
+  ])
   
   const upcomingEvents = eventsList.filter(e => e.status === 'Upcoming')
   const pastEvents = eventsList.filter(e => e.status === 'Past')
@@ -49,6 +52,7 @@ export default async function EventsPage() {
       <SimpleHero
         headline="Events & Convenings"
         subheadline="AODI convenes communities through conferences, summits, workshops, and training programs that support our mission and program delivery."
+        backgroundImage={settings.events_hero_image}
       />
 
       <section className="py-16 md:py-24 bg-white" data-testid="section-upcoming-events">

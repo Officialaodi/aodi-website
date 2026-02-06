@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { FileText, Download, ExternalLink, BookOpen, FileBarChart, Shield } from 'lucide-react'
 import Link from 'next/link'
+import { getCachedSiteSettings } from '@/lib/cache'
 
 export const metadata: Metadata = {
   title: 'Resources | Africa of Our Dream Education Initiative (AODI)',
@@ -43,7 +44,10 @@ async function getResources() {
 }
 
 export default async function ResourcesPage() {
-  const resourcesByCategory = await getResources()
+  const [resourcesByCategory, settings] = await Promise.all([
+    getResources(),
+    getCachedSiteSettings(),
+  ])
   const categories = Object.keys(resourcesByCategory)
 
   return (
@@ -51,6 +55,7 @@ export default async function ResourcesPage() {
       <SimpleHero
         headline="Resources"
         subheadline="Access reports, guides, and frameworks to support your leadership journey and partnership with AODI."
+        backgroundImage={settings.resources_hero_image}
       />
 
       {categories.length === 0 ? (

@@ -86,6 +86,7 @@ export default async function ImpactPage() {
       <SimpleHero
         headline={heroHeadline}
         subheadline={heroSubheadline}
+        backgroundImage={settings.impact_hero_image}
       />
 
       <section className="py-12 md:py-16 bg-white">

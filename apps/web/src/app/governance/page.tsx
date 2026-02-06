@@ -81,6 +81,7 @@ export default async function GovernancePage() {
       <SimpleHero
         headline={s.governance_hero_headline || "Governance & Accountability"}
         subheadline={s.governance_hero_subheadline || "We operate with strong governance, ethical practice, and outcome tracking to sustain credibility and partner confidence."}
+        backgroundImage={s.governance_hero_image}
       />
 
       {/* Governance Values */}

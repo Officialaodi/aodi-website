@@ -4,7 +4,7 @@ import { SimpleHero } from '@/components/sections/SimpleHero'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { programClusters, type Program } from '@/lib/schema'
-import { getCachedPrograms } from '@/lib/cache'
+import { getCachedPrograms, getCachedSiteSettings } from '@/lib/cache'
 import { Calendar, Users, GraduationCap, Handshake, Lightbulb, BookOpen } from 'lucide-react'
 
 export const metadata: Metadata = {
@@ -37,7 +37,10 @@ function groupProgramsByCluster(programsList: Program[]) {
 }
 
 export default async function ProgramsPage() {
-  const programsList = await getPrograms()
+  const [programsList, settings] = await Promise.all([
+    getPrograms(),
+    getCachedSiteSettings(),
+  ])
   const groupedPrograms = groupProgramsByCluster(programsList)
 
   return (
@@ -45,6 +48,7 @@ export default async function ProgramsPage() {
       <SimpleHero
         headline="Our Programs"
         subheadline="Leadership development, mentorship, skills training, and access to education across Africa."
+        backgroundImage={settings.programs_hero_image}
       />
 
       <section className="py-16 md:py-24 bg-white">

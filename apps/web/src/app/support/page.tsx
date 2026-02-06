@@ -55,6 +55,7 @@ export default async function SupportPage() {
       givingReasons={givingReasons}
       heroHeadline={heroHeadline}
       heroSubheadline={heroSubheadline}
+      heroImage={settings.support_hero_image}
     />
   )
 }

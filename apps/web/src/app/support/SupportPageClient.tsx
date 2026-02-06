@@ -22,6 +22,7 @@ interface SupportPageClientProps {
   givingReasons: ReasonOption[]
   heroHeadline: string
   heroSubheadline: string
+  heroImage?: string
 }
 
 export function SupportPageClient({
@@ -31,6 +32,7 @@ export function SupportPageClient({
   givingReasons,
   heroHeadline,
   heroSubheadline,
+  heroImage,
 }: SupportPageClientProps) {
   const [currency, setCurrency] = useState<'NGN' | 'USD'>('NGN')
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null)
@@ -167,6 +169,7 @@ export function SupportPageClient({
       <SimpleHero
         headline={heroHeadline}
         subheadline={heroSubheadline}
+        backgroundImage={heroImage}
       />
 
       <section className="py-16 md:py-24 bg-white">

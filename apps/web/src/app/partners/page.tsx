@@ -52,6 +52,7 @@ export default async function PartnersPage() {
       <SimpleHero
         headline={heroHeadline}
         subheadline={heroSubheadline}
+        backgroundImage={settings.partners_hero_image}
       />
 
       {/* Partnership Models */}

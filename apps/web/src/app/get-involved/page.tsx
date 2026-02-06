@@ -76,6 +76,7 @@ export default async function GetInvolvedPage() {
       <SimpleHero
         headline={headline}
         subheadline={subheadline}
+        backgroundImage={settings['getinvolved_hero_image']}
       />
 
       <section className="py-16 md:py-24 bg-white">
