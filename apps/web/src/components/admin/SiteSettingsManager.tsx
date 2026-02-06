@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { RichTextEditor } from "@/components/ui/rich-text-editor"
 import { ImageUpload } from "@/components/ui/image-upload"
-import { RefreshCw, Save, Globe, Home, Mail, Share2, Info, Handshake, Users, BarChart3, Heart, Shield } from "lucide-react"
+import { RefreshCw, Save, Globe, Home, Mail, Share2, Info, Handshake, Users, BarChart3, Heart, Shield, GraduationCap, Calendar, BookOpen } from "lucide-react"
 import {
   Tabs,
   TabsContent,
@@ -32,6 +32,9 @@ const categoryIcons: Record<string, typeof Globe> = {
   homepage: Home,
   about: Info,
   getinvolved: Users,
+  programs: GraduationCap,
+  events: Calendar,
+  resources: BookOpen,
   partners: Handshake,
   impact: BarChart3,
   support: Heart,
@@ -45,6 +48,9 @@ const categoryLabels: Record<string, string> = {
   homepage: "Homepage",
   about: "About Page",
   getinvolved: "Get Involved Page",
+  programs: "Programs Page",
+  events: "Events Page",
+  resources: "Resources Page",
   partners: "Partners Page",
   impact: "Impact Page",
   support: "Support / Donations Page",
@@ -54,7 +60,7 @@ const categoryLabels: Record<string, string> = {
   general: "General",
 }
 
-const categoryOrder = ["homepage", "about", "getinvolved", "partners", "impact", "support", "governance", "footer", "social", "general"]
+const categoryOrder = ["homepage", "about", "getinvolved", "programs", "events", "resources", "partners", "impact", "support", "governance", "footer", "social", "general"]
 
 export function SiteSettingsManager() {
   const [settings, setSettings] = useState<SettingsGroup>({})
