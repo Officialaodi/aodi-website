@@ -1,0 +1,9 @@
+name="aodi-website"
+main = "dist/index.cjs"
+compatibility_date = "2026-02-15"
+
+[assets]
+directory = "./apps/web/.next/standalone/apps/web/public"
+
+[vars]
+NODE_ENV = "production"
