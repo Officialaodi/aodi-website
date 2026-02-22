@@ -1,6 +1,7 @@
 name="aodi-website"
 main = "dist/index.cjs"
 compatibility_date = "2026-02-15"
+compatibility_flags = ["nodejs_compat"]
 
 [assets]
 directory = "./apps/web/.next/standalone/apps/web/public"
