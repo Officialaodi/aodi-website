@@ -8,3 +8,6 @@ directory = "./apps/web/.next/standalone/apps/web/public"
 
 [vars]
 NODE_ENV = "production"
+
+[build]
+upload_include = ["seed/data/*.json"]
