@@ -4,15 +4,15 @@
  *   apps/cms/src/index.ts (Strapi v5) or apps/cms/src/bootstrap.ts (Strapi v4)
  * and call runSeed(strapi) when SEED=true.
  */
-import fs from "fs";
-import path from "path";
+import { readFileSync } from "node:fs";
+import { join, resolve } from "node:path";
 
 type Strapi = any;
 
-const DATA_DIR = path.resolve(process.cwd(), "seed", "data");
+const DATA_DIR = resolve(process.cwd(), "seed", "data");
 
 function readJson(file: string) {
-  return JSON.parse(fs.readFileSync(path.join(DATA_DIR, file), "utf-8"));
+  return JSON.parse(readFileSync(join(DATA_DIR, file), "utf-8"));
 }
 
 async function upsertByUnique(strapi: Strapi, uid: string, where: any, data: any) {
