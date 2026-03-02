@@ -126,11 +126,8 @@
   "overrides": {
     "drizzle-kit": {
       "@esbuild-kit/esm-loader": "npm:tsx@^4.20.4",
-      "bufferutil": "$false",
-      "utf-8-validate": "$false"
     }
   },
   "optionalDependencies": {
-    "bufferutil": "^4.0.8"
   }
 }
