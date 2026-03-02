@@ -107,7 +107,7 @@
     "@types/connect-pg-simple": "^7.0.3",
     "@types/express": "^5.0.0",
     "@types/express-session": "^1.18.0",
-    "@types/node": "^20.19.27",
+    "@types/node": "^20.19.35",
     "@types/passport": "^1.0.16",
     "@types/passport-local": "^1.0.38",
     "@types/react": "^18.3.11",
@@ -125,7 +125,9 @@
   },
   "overrides": {
     "drizzle-kit": {
-      "@esbuild-kit/esm-loader": "npm:tsx@^4.20.4"
+      "@esbuild-kit/esm-loader": "npm:tsx@^4.20.4",
+      "bufferutil": "$false",
+      "utf-8-validate": "$false"
     }
   },
   "optionalDependencies": {
