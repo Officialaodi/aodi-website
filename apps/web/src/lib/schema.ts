@@ -97,7 +97,7 @@ export const programClusters = [
   "Foundational Education Access"
 ] as const
 
-export type ProgramCluster = typeof programClusters[number]
+export type ProgramCluster = typeof programClusters[number];
 
 export const programs = pgTable("programs", {
   id: serial("id").primaryKey(),
