@@ -1,13 +1,11 @@
 name="aodi-website"
-main = "dist/index.cjs"
+main = "server/worker.ts"
 compatibility_date = "2026-02-15"
-compatibility_flags = ["nodejs_compat"]
+compatibility_flags = ["nodejs_compat", "nodejs_compat_populate_process_env"]
 
 [assets]
-directory = "./apps/web/.next/standalone/apps/web/public"
+directory = "apps/web/public"
+binding = "ASSETS"
 
 [vars]
 NODE_ENV = "production"
-
-[build]
-upload_include = ["seed/data/*.json"]

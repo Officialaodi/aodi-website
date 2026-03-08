@@ -17,7 +17,6 @@ async function buildAll() {
 
   const serverEntry = `
 const path = require('path');
-const { spawn } = require('child_process');
 
 const port = process.env.PORT || 5000;
 process.env.PORT = port;
