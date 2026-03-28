@@ -6,17 +6,21 @@ import {serve} from "@hono/node-server";
 import { serveStatic } from '@hono/node-server/serve-static'
 import { registerRoutes } from "./route";
 import dotenv from "dotenv";
+// import { Bindings } from "hono/types";
 
 dotenv.config();
 
-const app = new Hono();
+const app = new Hono<any>();
 
 app.use(cors())
 
 app.use('/assets/*', serveStatic({ root: './client' }))
 
 const serveIndex = serveStatic({ path: './client/index.html' })
-app.get('/', serveIndex)
+
+app.get('/', async (c) => {
+  return c.env.ASSETS.fetch(new Request(new URL('/index.html', c.req.url)))
+})
 
 const rawBodyMiddleware = createMiddleware(async (c, next) => {
 

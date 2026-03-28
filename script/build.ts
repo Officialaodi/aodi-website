@@ -22,7 +22,7 @@ const port = process.env.PORT || 5000;
 process.env.PORT = port;
 process.env.HOSTNAME = '0.0.0.0';
 
-const serverPath = path.join(__dirname, '..', 'apps', 'web', '.next', 'standalone', 'apps', 'web', 'server.js');
+const serverPath = path.join(__dirname, '..', 'apps', 'web', '.next', 'standalone', 'server.js');
 
 console.log('Starting Next.js server on port ' + port + '...');
 
