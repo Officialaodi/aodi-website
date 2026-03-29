@@ -14,8 +14,7 @@
     "db:migrate": "drizzle-kit migrate",
     "preview": "npm run build && node src/index.ts",
     "deploy": "npm run build && wrangler deploy",
-    "studio": "drizzle-kit studio",
-    // "postinstall": "npm run db:push"
+    "studio": "drizzle-kit studio"
   },
   "dependencies": {
     "@hcaptcha/react-hcaptcha": "^2.0.2",
