@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button'
 import { getCachedEvents, getCachedSiteSettings } from '@/lib/cache'
 import { Calendar, MapPin, Video, Users } from 'lucide-react'
 
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: 'Events & Convenings | Africa of Our Dream Education Initiative (AODI)',
   description: 'Join AODI conferences, summits, workshops, and training programs that support leadership development and talent empowerment across Africa.',
