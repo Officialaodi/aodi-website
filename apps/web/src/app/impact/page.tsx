@@ -10,6 +10,8 @@ export const metadata: Metadata = {
 
 export const revalidate = 300
 
+export const dynamic = 'force-dynamic';
+
 const categoryIcons: Record<string, React.ReactNode> = {
   "Beneficiaries & Reach": <Users className="w-6 h-6" />,
   "Education & Capacity Building": <GraduationCap className="w-6 h-6" />,
