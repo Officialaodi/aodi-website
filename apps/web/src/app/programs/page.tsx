@@ -13,6 +13,7 @@ export const metadata: Metadata = {
 }
 
 export const revalidate = 300
+export const dynamic = 'force-dynamic';
 
 const clusterDescriptions: Record<string, string> = {
   "Leadership & Mentorship": "Flagship mentorship and leadership pathways supporting academic and career progression.",

@@ -11,6 +11,7 @@ import { ClosingStatement } from '@/components/sections/ClosingStatement'
 import { getCachedSiteSettings } from '@/lib/cache'
 
 export const revalidate = 300
+export const dynamic = 'force-dynamic';
 
 function parseJSON<T>(value: string | undefined, fallback: T): T {
   if (!value) return fallback
