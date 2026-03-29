@@ -8,6 +8,8 @@ import { getCachedSiteSettings } from '@/lib/cache'
 
 export const revalidate = 300
 
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: 'Get Involved | Africa of Our Dream Education Initiative (AODI)',
   description: 'Join AODI as a partner, mentor, mentee, or volunteer. Support leadership development across Africa.',
