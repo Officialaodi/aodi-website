@@ -1,3 +1,5 @@
+"use client"
+
 import Link from 'next/link'
 import type { Metadata } from 'next'
 import { SimpleHero } from '@/components/sections/SimpleHero'
