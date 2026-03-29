@@ -6,6 +6,7 @@ import {serve} from "@hono/node-server";
 import { serveStatic } from '@hono/node-server/serve-static'
 import { registerRoutes } from "./route";
 import dotenv from "dotenv";
+import path from "path";
 // import { Bindings } from "hono/types";
 
 dotenv.config();
@@ -14,9 +15,14 @@ const app = new Hono<any>();
 
 app.use(cors())
 
-app.use('/assets/*', serveStatic({ root: './client' }))
+app.use(
+  '/assets/*',
+  serveStatic({
+    root: path.join(__dirname, '../client/public'),
+    rewriteRequestPath: (path) => path.replace(/^\/assets/, ''),
+  })
+);
 
-const serveIndex = serveStatic({ path: './client/index.html' })
 
 app.get('/', async (c) => {
   return c.env.ASSETS.fetch(new Request(new URL('/index.html', c.req.url)))
