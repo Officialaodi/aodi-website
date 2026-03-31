@@ -2,6 +2,8 @@ import { NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { analyticsConversions } from "@/lib/schema"
 
+ export const runtime = 'edge';
+
 export async function POST(request: Request) {
   try {
     const contentLength = request.headers.get("content-length")

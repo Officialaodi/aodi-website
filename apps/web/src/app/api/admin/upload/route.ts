@@ -5,6 +5,8 @@ import { writeFile, mkdir } from "fs/promises"
 import path from "path"
 import crypto from "crypto"
 
+ export const runtime = 'edge';
+
 const UPLOAD_DIR = path.join(process.cwd(), "uploads")
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024
 const MAX_VIDEO_SIZE = 100 * 1024 * 1024

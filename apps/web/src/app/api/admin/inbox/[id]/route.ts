@@ -5,6 +5,8 @@ import { db } from "@/lib/db"
 import { syncedEmails, emailAccounts } from "@/lib/schema"
 import { eq } from "drizzle-orm"
 
+ export const runtime = 'edge';
+
 function verifySignedToken(signedToken: string, secret: string): boolean {
   try {
     const [token, signature] = signedToken.split(".")

@@ -2,6 +2,8 @@ import { NextResponse } from "next/server"
 import { cookies } from "next/headers"
 import { auditLog } from "@/lib/audit-log"
 
+ export const runtime = 'edge';
+
 export async function POST() {
   await auditLog({
     entityType: "session",

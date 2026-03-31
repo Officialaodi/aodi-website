@@ -6,6 +6,8 @@ import {
   OrdersController,
 } from '@paypal/paypal-server-sdk'
 
+ export const runtime = 'edge';
+
 function getPayPalClient() {
   const { PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET } = process.env
 

@@ -6,6 +6,8 @@ import { cookies } from "next/headers"
 import { timingSafeEqual, createHmac } from "crypto"
 import { auditLog } from "@/lib/audit-log"
 
+ export const runtime = 'edge';
+
 async function verifySession(): Promise<boolean> {
   const cookieStore = await cookies()
   const sessionToken = cookieStore.get("admin_session")?.value

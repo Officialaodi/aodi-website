@@ -2,6 +2,8 @@ import { NextResponse } from "next/server"
 import { readFile } from "fs/promises"
 import path from "path"
 
+ export const runtime = 'edge';
+
 const UPLOAD_DIR = path.join(process.cwd(), "uploads")
 const LEGACY_UPLOAD_DIR = path.join(process.cwd(), "public", "uploads")
 

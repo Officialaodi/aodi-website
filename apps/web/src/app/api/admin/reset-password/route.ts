@@ -4,6 +4,8 @@ import { adminUsers, passwordResetTokens } from "@/lib/schema"
 import { eq, and, isNull, gt } from "drizzle-orm"
 import { hashPassword } from "@/lib/admin-auth"
 
+ export const runtime = 'edge';
+
 export async function POST(request: NextRequest) {
   try {
     const { token, password } = await request.json()

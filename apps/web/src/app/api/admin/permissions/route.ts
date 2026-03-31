@@ -4,6 +4,8 @@ import { db } from "@/lib/db"
 import { permissions } from "@/lib/schema"
 import { verifySignedToken, getUserWithPermissions } from "@/lib/admin-auth"
 
+ export const runtime = 'edge';
+
 async function verifyPermission(requiredPermission: string) {
   const sessionSecret = process.env.SESSION_SECRET
   if (!sessionSecret) return null

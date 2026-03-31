@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { events, programs, stories, resources, trustees, executiveDirector } from "@/lib/schema"
 import { ilike, or, sql, eq } from "drizzle-orm"
+
+ export const runtime = 'edge';
 export const dynamic = "force-dynamic";
 
 const staticPages = [

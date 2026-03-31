@@ -3,6 +3,8 @@ import { db } from "@/lib/db"
 import { permissions, roles, rolePermissions, forms, formFields, integrationSettings, partners, stories, resources, programs, testimonials, impactMetrics } from "@/lib/schema"
 import { eq, sql } from "drizzle-orm"
 
+ export const runtime = 'edge';
+
 const DEFAULT_PERMISSIONS = [
   { key: "applications.view", name: "View Applications", category: "Applications", description: "View all applications" },
   { key: "applications.manage", name: "Manage Applications", category: "Applications", description: "Update application status and details" },

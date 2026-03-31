@@ -4,6 +4,8 @@ import { db } from "@/lib/db"
 import { adminUsers, passwordResetTokens } from "@/lib/schema"
 import { eq } from "drizzle-orm"
 
+ export const runtime = 'edge';
+
 async function verifyCaptcha(token: string): Promise<boolean> {
   const secretKey = process.env.HCAPTCHA_SECRET_KEY
   if (!secretKey) return true

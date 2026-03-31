@@ -4,6 +4,8 @@ import { adminUsers } from "@/lib/schema"
 import { hashPassword } from "@/lib/admin-auth"
 import { eq } from "drizzle-orm"
 
+ export const runtime = 'edge';
+
 export async function POST(request: NextRequest) {
   try {
     const { masterPassword, email, newPassword } = await request.json()

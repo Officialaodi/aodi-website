@@ -6,6 +6,8 @@ import { verifyCaptcha } from '@/lib/captcha'
 import { eq } from 'drizzle-orm'
 import { trackConversion } from '@/lib/track-conversion'
 
+ export const runtime = 'edge';
+
 export async function POST(request: NextRequest) {
   const clientId = getClientIdentifier(request)
   const rateLimit = checkRateLimit(`newsletter:${clientId}`, { windowMs: 60000, maxRequests: 3 })

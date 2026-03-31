@@ -5,6 +5,8 @@ import { desc, eq, sql } from "drizzle-orm"
 import { cookies } from "next/headers"
 import crypto from "crypto"
 
+ export const runtime = 'edge';
+
 function verifySignedToken(token: string, sessionSecret: string): boolean {
   const parts = token.split(".")
   if (parts.length !== 2) return false

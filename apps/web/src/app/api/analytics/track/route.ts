@@ -4,6 +4,8 @@ import { analyticsSessions, analyticsPageViews, analyticsEvents } from "@/lib/sc
 import { eq } from "drizzle-orm"
 import { getCountryFromTimezone, getContinentFromTimezone } from "@/lib/timezone-geo"
 
+ export const runtime = 'edge';
+
 const VALID_TYPES = ["session_start", "page_view", "page_update", "session_end", "event"]
 const MAX_STRING_LENGTH = 500
 

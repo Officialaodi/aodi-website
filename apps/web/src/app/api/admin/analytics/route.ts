@@ -5,6 +5,8 @@ import { analyticsSessions, analyticsPageViews, analyticsEvents, analyticsConver
 import { sql, gte, and, desc, eq, count, avg, sum } from "drizzle-orm"
 import { verifySignedToken, getUserWithPermissions } from "@/lib/admin-auth"
 
+ export const runtime = 'edge';
+
 async function verifyAdminAccess() {
   const sessionSecret = process.env.SESSION_SECRET
   if (!sessionSecret) return null

@@ -6,6 +6,8 @@ import { eq } from "drizzle-orm"
 import { verifySignedToken, getUserWithPermissions, hashPassword } from "@/lib/admin-auth"
 import { auditLog } from "@/lib/audit-log"
 
+ export const runtime = 'edge';
+
 async function verifyPermission(requiredPermission: string) {
   const sessionSecret = process.env.SESSION_SECRET
   if (!sessionSecret) return null

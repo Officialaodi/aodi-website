@@ -5,6 +5,8 @@ import { eq, asc } from "drizzle-orm"
 import { z } from "zod"
 import { verifyCaptcha } from "@/lib/captcha"
 
+ export const runtime = 'edge';
+
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ slug: string }> }

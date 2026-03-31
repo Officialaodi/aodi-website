@@ -9,6 +9,8 @@ export const revalidate = 300
 
 export const dynamic = 'force-dynamic';
 
+ export const runtime = 'edge';
+
 export const metadata: Metadata = {
   title: 'About | Africa of Our Dream Education Initiative (AODI)',
   description: 'Learn about AODI - a globally governed leadership and talent development institution supporting high-potential students and early-career professionals across Africa.',

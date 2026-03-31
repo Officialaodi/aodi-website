@@ -15,18 +15,18 @@ const app = new Hono<any>();
 
 app.use(cors())
 
-app.use(
-  '/assets/*',
-  serveStatic({
-    root: path.join(__dirname, '../client/public'),
-    rewriteRequestPath: (path) => path.replace(/^\/assets/, ''),
-  })
-);
+// app.use(
+//   '/assets/*',
+//   serveStatic({
+//     root: path.join(__dirname, '../client/public'),
+//     rewriteRequestPath: (path) => path.replace(/^\/assets/, ''),
+//   })
+// );
 
 
-app.get('/', async (c) => {
-  return c.env.ASSETS.fetch(new Request(new URL('/index.html', c.req.url)))
-})
+// app.get('/', async (c) => {
+//   return c.env.ASSETS.fetch(new Request(new URL('/index.html', c.req.url)))
+// })
 
 const rawBodyMiddleware = createMiddleware(async (c, next) => {
 
@@ -49,12 +49,16 @@ const rawBodyMiddleware = createMiddleware(async (c, next) => {
 // Logger middleware
 app.use(logger());
 // Raw body middleware
-app.use("*", rawBodyMiddleware);
-
-
-
+app.use("/api/*", rawBodyMiddleware);
 // Register API routes
 registerRoutes(app);
+
+app.get('*', async (c) => {
+  return c.env.ASSETS.fetch(c.req.raw)
+})
+
+
+
 serve(app)
 
 

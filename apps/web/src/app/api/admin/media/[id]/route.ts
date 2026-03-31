@@ -7,6 +7,8 @@ import { eq } from "drizzle-orm"
 import { unlink } from "fs/promises"
 import path from "path"
 
+ export const runtime = 'edge';
+
 async function verifyAuth() {
   const sessionSecret = process.env.SESSION_SECRET
   if (!sessionSecret) return null

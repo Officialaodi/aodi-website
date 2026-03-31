@@ -2,6 +2,8 @@ import { NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { siteSettings } from "@/lib/schema"
 
+ export const runtime = 'edge';
+
 export async function GET() {
   try {
     const settings = await db.select().from(siteSettings)

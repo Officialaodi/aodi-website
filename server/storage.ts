@@ -1,4 +1,4 @@
-import { db } from "./db";
+import { getDb } from "./db";
 import { 
   programs, applications, impactMetrics, testimonials,
   type Program, type Application, type ImpactMetric, type Testimonial,
@@ -20,27 +20,28 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
+  constructor(private db: ReturnType<typeof getDb>) {}
   async getPrograms(): Promise<Program[]> {
-    return await db.select().from(programs).where(eq(programs.isActive, true));
+    return await this.db.select().from(programs).where(eq(programs.isActive, true));
   }
 
   async getProgramBySlug(slug: string): Promise<Program | undefined> {
-    const [program] = await db.select().from(programs).where(eq(programs.slug, slug));
+    const [program] = await this.db.select().from(programs).where(eq(programs.slug, slug));
     return program;
   }
 
   async createApplication(app: CreateApplicationRequest): Promise<Application> {
-    const [newApp] = await db.insert(applications).values(app).returning();
+    const [newApp] = await this.db.insert(applications).values(app).returning();
     return newApp;
   }
 
   async getMetrics(): Promise<ImpactMetric[]> {
-    return await db.select().from(impactMetrics).orderBy(impactMetrics.order);
+    return await this.db.select().from(impactMetrics).orderBy(impactMetrics.order);
   }
 
   async getTestimonials(): Promise<Testimonial[]> {
-    return await db.select().from(testimonials);
+    return await this.db.select().from(testimonials);
   }
 }
 
-export const storage = new DatabaseStorage();
+// export const storage = new DatabaseStorage();

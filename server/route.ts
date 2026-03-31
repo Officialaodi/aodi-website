@@ -1,9 +1,9 @@
 import type { Hono } from "hono";
-import { storage } from "./storage";
+import { DatabaseStorage } from "./storage";
 import { api } from "@shared/routes";
 import { z } from "zod";
 
-export async function registerRoutes(app: Hono) {
+export async function registerRoutes(app: Hono, storage: DatabaseStorage) {
   // --- Programs ---
   app.get(api.programs.list.path, async (c) => {
     const programs = await storage.getPrograms();
