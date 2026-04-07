@@ -15,7 +15,6 @@ const nextConfig = {
     minimumCacheTTL: 60 * 60 * 24 * 30,
   },
   experimental: {
-    optimizeCss: true,
     serverComponentsExternalPackages: ['jsdom', 'isomorphic-dompurify'],
   },
   webpack: (config, { isServer }) => {
