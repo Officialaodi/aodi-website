@@ -8,7 +8,7 @@ import { ImpactSnapshot } from '@/components/sections/ImpactSnapshot'
 import { GovernanceBlock } from '@/components/sections/GovernanceBlock'
 import { CTACards } from '@/components/sections/CTACards'
 import { ClosingStatement } from '@/components/sections/ClosingStatement'
-import { getCachedSiteSettings } from '@/lib/cache'
+import { getCachedSiteSettings, getCachedImpactMetrics } from '@/lib/cache'
 
 export const dynamic = 'force-dynamic'
 
@@ -22,26 +22,86 @@ function parseJSON<T>(value: string | undefined, fallback: T): T {
 }
 
 export default async function HomePage() {
-  const s = await getCachedSiteSettings()
+  const [s, metrics] = await Promise.all([
+    getCachedSiteSettings(),
+    getCachedImpactMetrics(),
+  ])
 
-  const trustItems = parseJSON<string[]>(s.trust_strip_items, [])
-  const pillarsItems = parseJSON<{ name: string; description: string }[]>(s.pillars_items, [])
-  const featuredBullets = parseJSON<string[]>(s.featured_bullets, [])
-  const scopeBullets = parseJSON<string[]>(s.scope_bullets, [])
-  const impactMetrics = parseJSON<{ label: string; value: string }[]>(s.impact_snapshot_metrics, [])
-  const govBullets = parseJSON<string[]>(s.governance_block_bullets, [])
-  const ctaCards = parseJSON<{ title: string; description: string; buttonText: string; href?: string; url?: string }[]>(s.cta_cards, [])
+  const trustItems = parseJSON<string[]>(s.homepage_trust_badges, [
+    'UK-governed', 'Africa-focused', 'Outcome-driven programs', 'Institutional partnerships',
+  ])
+
+  const pillarsItems = parseJSON<{ name: string; description: string }[]>(s.homepage_pillars_items, [
+    {
+      name: 'Leadership & Talent Development',
+      description: 'We design structured programs that build mentorship capacity, leadership potential, and entrepreneurship confidence at critical transition points throughout university and into early careers.',
+    },
+    {
+      name: 'Global Mentorship & Capability Building',
+      description: 'Through carefully matched mentors, workshops, and targeted skill-building, we connect young people with expertise, skills, and perspectives from institutions across various academic, industry, and the diaspora.',
+    },
+    {
+      name: 'Institutional Partnerships & Exposure',
+      description: 'We collaborate with schools, universities, NGOs, and businesses to create access to quality programs, and connect participants to global opportunities.',
+    },
+  ])
+
+  const featuredBullets = parseJSON<string[]>(s.homepage_featured_bullets, [
+    'Structured mentorship and guidance',
+    'Leadership and professional development support',
+    'Exposure to global academic and professional pathways',
+    'A values-driven community focused on long-term impact',
+  ])
+
+  const scopeBullets = parseJSON<string[]>(s.homepage_scope_bullets, [
+    'Campus-based engagement and ambassador programs',
+    'Women-focused leadership and empowerment initiatives',
+    'Youth and secondary school success programs',
+    'Conferences, workshops, and entrepreneurial initiatives',
+  ])
+
+  const impactSnapshotMetrics = metrics.map(m => ({ label: m.label, value: m.value }))
+
+  const govBullets = parseJSON<string[]>(s.homepage_governance_bullets, [
+    'Accountability and transparency',
+    'Safeguarding and ethical practice',
+    'Measurable outcomes and continuous improvement',
+  ])
+
+  const ctaCards = parseJSON<{ title: string; description: string; buttonText: string; url: string }[]>(
+    s.homepage_cta_cards,
+    [
+      {
+        title: 'Partner with AODI',
+        description: 'Contribute your resources and networks to leadership development across Africa.',
+        buttonText: 'Explore Partnership',
+        url: '/forms/partner',
+      },
+      {
+        title: 'Join as a Mentor',
+        description: 'Contribute your experience and expertise to guide the next generation.',
+        buttonText: 'Mentor Application',
+        url: '/forms/mentor',
+      },
+      {
+        title: 'Apply as a Mentee',
+        description: 'Get matched with a world-class mentor in your field to expand your community and guide your legacy.',
+        buttonText: 'Mentee Application',
+        url: '/forms/mentee',
+      },
+    ]
+  )
 
   return (
     <>
       <Hero
-        headline={s.hero_title || "Building Africa's Next Generation of Leaders"}
-        subheadline={s.hero_subtitle || ""}
-        ctaPrimaryText={s.hero_cta_text || "Partner with AODI"}
-        ctaPrimaryUrl={s.hero_cta_link || "/get-involved/partner"}
-        ctaSecondaryText={s.hero_cta2_text || "Join as a Mentor"}
-        ctaSecondaryUrl={s.hero_cta2_link || "/get-involved/mentor"}
-        backgroundImage={s.hero_image}
+        headline={s.homepage_hero_title || "Building Africa's Future Leaders"}
+        subheadline={s.homepage_hero_subtitle || 'Empowering the next generation through education, mentorship, and leadership development.'}
+        ctaPrimaryText={s.homepage_hero_cta_primary || 'Get Involved'}
+        ctaPrimaryUrl="/get-involved"
+        ctaSecondaryText={s.homepage_hero_cta_secondary || 'Join as a Mentor'}
+        ctaSecondaryUrl="/forms/mentor"
+        backgroundImage={s.homepage_hero_image}
       />
 
       {trustItems.length > 0 && (
@@ -49,40 +109,40 @@ export default async function HomePage() {
       )}
 
       <ProblemStatement
-        title={s.problem_title || ""}
-        body={s.problem_body || ""}
+        title={s.homepage_mission_title || "Africa's Talent Is Abundant. Opportunity Is Not."}
+        body={s.homepage_mission_body || "Across Africa, millions of talented young people demonstrate exceptional potential — yet lack access to mentorship, leadership development, global networks, and structured pathways into academia, entrepreneurship, and high-impact careers. AODI exists to close this gap — systemically and at scale."}
       />
 
       {pillarsItems.length > 0 && (
         <Pillars
-          title={s.pillars_title || ""}
+          title={s.homepage_pillars_title || 'A Leadership & Talent Development Model Built for Impact'}
           pillars={pillarsItems}
         />
       )}
 
       <FeaturedProgram
-        title={s.featured_title || ""}
+        title={s.homepage_featured_title || 'Global Mentorship & Leadership Program'}
         bullets={featuredBullets}
-        ctaText={s.featured_cta_text || "Explore the Program"}
-        ctaUrl={s.featured_cta_link || "/programs"}
+        ctaText={s.homepage_featured_cta_text || 'Explore the Program'}
+        ctaUrl={s.homepage_featured_cta_link || '/programs'}
       />
 
       <InitiativeScope
-        title={s.scope_title || ""}
+        title={s.homepage_scope_title || 'Supporting Talent Across the Education-to-Leadership Journey'}
         bullets={scopeBullets}
-        closingLine={s.scope_closing || ""}
+        closingLine={s.homepage_scope_closing || 'Each initiative serves a single purpose: to identify talent early, develop leadership capacity, and unlock access to opportunity.'}
       />
 
-      {impactMetrics.length > 0 && (
+      {impactSnapshotMetrics.length > 0 && (
         <ImpactSnapshot
-          title={s.impact_snapshot_title || "Measured Progress. Real Outcomes."}
-          metrics={impactMetrics}
+          title={s.homepage_impact_title || 'Measured Progress. Real Outcomes.'}
+          metrics={impactSnapshotMetrics}
         />
       )}
 
       <GovernanceBlock
-        title={s.governance_block_title || ""}
-        body={s.governance_block_body || ""}
+        title={s.homepage_governance_title || 'Globally Governed. Africa Focused.'}
+        body={s.homepage_governance_body || 'AODI operates with governance and coordination based in the United Kingdom, delivering programs across Africa in partnership with trusted institutions and community stakeholders.'}
         bullets={govBullets}
       />
 
@@ -91,13 +151,13 @@ export default async function HomePage() {
           title: c.title,
           description: c.description,
           buttonText: c.buttonText,
-          url: c.href || c.url || "#"
+          url: c.url,
         }))}
       />
 
       <ClosingStatement
-        title={s.closing_title || ""}
-        body={s.closing_body || ""}
+        title={s.homepage_closing_title || 'Investing in People. Unlocking Potential. Shaping the Future.'}
+        body={s.homepage_closing_body || "Africa's future depends on the leadership capacity of its people. With AODI, we are committed to building that capacity — deliberately, inclusively, and with lasting impact."}
       />
     </>
   )

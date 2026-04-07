@@ -44,8 +44,8 @@ export default async function SupportPage() {
   const dollarAmounts = parseJSON(settings.support_dollar_amounts, defaultDollarAmounts)
   const supportBenefits = parseJSON(settings.support_benefits, defaultSupportBenefits)
   const givingReasons = parseJSON(settings.support_giving_reasons, defaultGivingReasons)
-  const heroHeadline = settings.support_hero_headline || "Support AODI's Work"
-  const heroSubheadline = settings.support_hero_subheadline || "Help us build leadership capacity and expand access to opportunity across Africa."
+  const heroHeadline = settings.support_hero_title || "Support AODI's Work"
+  const heroSubheadline = settings.support_hero_subtitle || "Help us build leadership capacity and expand access to opportunity across Africa."
 
   return (
     <SupportPageClient
