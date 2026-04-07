@@ -572,6 +572,7 @@ export const mediaLibrary = pgTable("media_library", {
   caption: text("caption"),
   folder: text("folder").default("uploads"),
   uploadedBy: integer("uploaded_by"),
+  data: text("data"),
   createdAt: timestamp("created_at").defaultNow(),
 })
 

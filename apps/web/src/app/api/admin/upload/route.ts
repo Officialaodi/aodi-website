@@ -4,6 +4,8 @@ import { verifySignedToken } from "@/lib/admin-auth"
 import { writeFile, mkdir } from "fs/promises"
 import path from "path"
 import crypto from "crypto"
+import { db } from "@/lib/db"
+import { mediaLibrary } from "@/lib/schema"
 
 const UPLOAD_DIR = path.join(process.cwd(), "uploads")
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024
@@ -53,19 +55,33 @@ export async function POST(request: Request) {
 
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
+    const base64Data = buffer.toString("base64")
 
     const ext = path.extname(file.name).toLowerCase() || ".bin"
     const uniqueId = crypto.randomBytes(8).toString("hex")
     const timestamp = Date.now()
     const filename = `${timestamp}-${uniqueId}${ext}`
-
-    await mkdir(UPLOAD_DIR, { recursive: true })
-
-    const filepath = path.join(UPLOAD_DIR, filename)
-    await writeFile(filepath, buffer)
-
     const url = `/api/uploads/${filename}`
     const mediaType = isVideo ? 'video' : (ALLOWED_DOCUMENT_TYPES.includes(file.type) ? 'document' : 'image')
+
+    // Save to database first (persistent across deployments and restarts)
+    await db.insert(mediaLibrary).values({
+      filename,
+      originalName: file.name,
+      url,
+      mimeType: file.type,
+      size: file.size,
+      data: base64Data,
+      folder: mediaType,
+    })
+
+    // Also write to filesystem as local cache (best-effort)
+    try {
+      await mkdir(UPLOAD_DIR, { recursive: true })
+      await writeFile(path.join(UPLOAD_DIR, filename), buffer)
+    } catch {
+      // Filesystem write failure is non-fatal — DB is the source of truth
+    }
 
     return NextResponse.json({ 
       url,

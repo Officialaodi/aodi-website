@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server"
 import { readFile } from "fs/promises"
 import path from "path"
+import { db } from "@/lib/db"
+import { mediaLibrary } from "@/lib/schema"
+import { eq } from "drizzle-orm"
 
 const UPLOAD_DIR = path.join(process.cwd(), "uploads")
 const LEGACY_UPLOAD_DIR = path.join(process.cwd(), "public", "uploads")
@@ -30,15 +33,38 @@ export async function GET(
       return NextResponse.json({ error: "Invalid filename" }, { status: 400 })
     }
 
+    const ext = path.extname(sanitized).toLowerCase()
+    const contentType = MIME_TYPES[ext] || "application/octet-stream"
+
+    // Database is the persistent source of truth — try it first
+    try {
+      const [record] = await db
+        .select({ data: mediaLibrary.data, mimeType: mediaLibrary.mimeType })
+        .from(mediaLibrary)
+        .where(eq(mediaLibrary.filename, sanitized))
+        .limit(1)
+
+      if (record?.data) {
+        const buffer = Buffer.from(record.data, "base64")
+        return new NextResponse(buffer, {
+          status: 200,
+          headers: {
+            "Content-Type": record.mimeType || contentType,
+            "Cache-Control": "public, max-age=31536000, immutable",
+          },
+        })
+      }
+    } catch {
+      // DB lookup failed — fall through to filesystem
+    }
+
+    // Fallback: local filesystem (useful during development)
     let buffer: Buffer
     try {
       buffer = await readFile(path.join(UPLOAD_DIR, sanitized))
     } catch {
       buffer = await readFile(path.join(LEGACY_UPLOAD_DIR, sanitized))
     }
-
-    const ext = path.extname(sanitized).toLowerCase()
-    const contentType = MIME_TYPES[ext] || "application/octet-stream"
 
     return new NextResponse(buffer, {
       status: 200,
