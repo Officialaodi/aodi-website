@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   description: 'Partner with AODI to scale leadership and talent development across Africa through cohort sponsorship, program sponsorship, or institutional partnership.',
 }
 
-export const revalidate = 300
+export const dynamic = 'force-dynamic'
 
 function parseJSON<T>(value: string | undefined, fallback: T): T {
   if (!value) return fallback

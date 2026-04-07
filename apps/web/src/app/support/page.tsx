@@ -1,7 +1,7 @@
 import { getCachedSiteSettings } from '@/lib/cache'
 import { SupportPageClient } from './SupportPageClient'
 
-export const revalidate = 300
+export const dynamic = 'force-dynamic'
 
 const defaultNairaAmounts = [
   { value: 5000, label: "₦5,000" },

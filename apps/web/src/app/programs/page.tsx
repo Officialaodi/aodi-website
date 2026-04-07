@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   description: 'Explore AODI leadership and talent development programs designed for students and early-career professionals across Africa.',
 }
 
-export const revalidate = 300
+export const dynamic = 'force-dynamic'
 
 const clusterDescriptions: Record<string, string> = {
   "Leadership & Mentorship": "Flagship mentorship and leadership pathways supporting academic and career progression.",

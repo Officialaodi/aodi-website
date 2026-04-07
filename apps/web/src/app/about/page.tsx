@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Check } from 'lucide-react'
 import { getCachedSiteSettings } from '@/lib/cache'
 
-export const revalidate = 300
+export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
   title: 'About | Africa of Our Dream Education Initiative (AODI)',

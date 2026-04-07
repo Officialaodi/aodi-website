@@ -22,6 +22,8 @@ import Image from "next/image"
 import Captcha from "@/components/ui/captcha"
 import { PolicyConsent } from "@/components/forms/PolicyConsent"
 
+export const dynamic = 'force-dynamic'
+
 interface FormField {
   id: number
   fieldKey: string

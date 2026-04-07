@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   description: 'Read inspiring stories from AODI mentees, mentors, and alumni who are transforming Africa through leadership and talent development.',
 }
 
-export const revalidate = 300
+export const dynamic = 'force-dynamic'
 
 async function getStories() {
   return getCachedStories()

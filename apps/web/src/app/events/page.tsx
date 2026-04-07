@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   description: 'Join AODI conferences, summits, workshops, and training programs that support leadership development and talent empowerment across Africa.',
 }
 
-export const revalidate = 300
+export const dynamic = 'force-dynamic'
 
 async function getEvents() {
   return getCachedEvents()

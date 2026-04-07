@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   description: 'Latest news, press releases, and announcements from Africa of Our Dream Education Initiative.',
 }
 
-export const revalidate = 300
+export const dynamic = 'force-dynamic'
 
 async function getNewsItems() {
   return getCachedStories()

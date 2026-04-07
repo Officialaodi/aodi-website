@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   description: 'Measured impact across education, leadership, and access. See AODI\'s reach, delivery, and outcomes since inception.',
 }
 
-export const revalidate = 300
+export const dynamic = 'force-dynamic'
 
 const categoryIcons: Record<string, React.ReactNode> = {
   "Beneficiaries & Reach": <Users className="w-6 h-6" />,
