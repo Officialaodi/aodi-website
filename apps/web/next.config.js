@@ -16,6 +16,20 @@ const nextConfig = {
   },
   experimental: {
     optimizeCss: true,
+    serverComponentsExternalPackages: ['jsdom', 'isomorphic-dompurify'],
+  },
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        jsdom: false,
+        canvas: false,
+        fs: false,
+        net: false,
+        tls: false,
+      }
+    }
+    return config
   },
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production' ? { exclude: ['error', 'warn'] } : false,
