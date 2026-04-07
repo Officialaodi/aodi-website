@@ -4,6 +4,8 @@ import { contacts, activityLogs } from "@/lib/schema"
 import { checkRateLimit, getClientIdentifier } from "@/lib/rate-limit"
 import { verifyCaptcha } from "@/lib/captcha"
 
+export const dynamic = 'force-dynamic'
+
 export async function POST(request: NextRequest) {
   const clientId = getClientIdentifier(request)
   const rateLimit = checkRateLimit(`contact:${clientId}`, { windowMs: 60000, maxRequests: 5 })

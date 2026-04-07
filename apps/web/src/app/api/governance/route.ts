@@ -3,6 +3,8 @@ import { db } from "@/lib/db"
 import { trustees, governanceContent } from "@/lib/schema"
 import { eq, asc } from "drizzle-orm"
 
+export const dynamic = 'force-dynamic'
+
 export async function GET() {
   try {
     const [trusteesData, contentData] = await Promise.all([

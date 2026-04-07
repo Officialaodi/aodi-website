@@ -7,6 +7,8 @@ import { timingSafeEqual, createHmac } from "crypto"
 import { z } from "zod"
 import { auditLog } from "@/lib/audit-log"
 
+export const dynamic = 'force-dynamic'
+
 const objectiveSchema = z.object({
   icon: z.string(),
   title: z.string(),

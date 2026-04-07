@@ -6,6 +6,8 @@ import { siteSettings } from "@/lib/schema"
 import { eq } from "drizzle-orm"
 import { auditLog } from "@/lib/audit-log"
 
+export const dynamic = 'force-dynamic'
+
 function getSessionSecret() {
   return process.env.SESSION_SECRET
 }

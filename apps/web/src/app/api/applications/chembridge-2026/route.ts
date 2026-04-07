@@ -4,6 +4,8 @@ import { applications } from "@/lib/schema"
 import { z } from "zod"
 import { trackConversion } from "@/lib/track-conversion"
 
+export const dynamic = 'force-dynamic'
+
 const chembridgeSchema = z.object({
   title: z.string().min(1),
   firstName: z.string().min(1),

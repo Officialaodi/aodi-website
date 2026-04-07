@@ -6,6 +6,8 @@ import {
   OAuthAuthorizationController,
 } from '@paypal/paypal-server-sdk'
 
+export const dynamic = 'force-dynamic'
+
 function getPayPalClient() {
   const { PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET } = process.env
 

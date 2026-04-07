@@ -5,6 +5,8 @@ import { checkRateLimit, getClientIdentifier } from '@/lib/rate-limit'
 import { sendFormNotification } from '@/lib/email'
 import { verifyCaptcha } from '@/lib/captcha'
 
+export const dynamic = 'force-dynamic'
+
 export async function POST(request: NextRequest) {
   const clientId = getClientIdentifier(request)
   const rateLimit = checkRateLimit(`stem-workshops:${clientId}`, { windowMs: 60000, maxRequests: 5 })

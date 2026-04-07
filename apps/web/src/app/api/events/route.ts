@@ -3,6 +3,8 @@ import { db } from "@/lib/db"
 import { events } from "@/lib/schema"
 import { eq, desc } from "drizzle-orm"
 
+export const dynamic = 'force-dynamic'
+
 export async function GET() {
   try {
     const eventsList = await db

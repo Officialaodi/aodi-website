@@ -5,6 +5,8 @@ import { inArray } from "drizzle-orm"
 import { cookies } from "next/headers"
 import crypto from "crypto"
 
+export const dynamic = 'force-dynamic'
+
 function verifySignedToken(token: string, sessionSecret: string): boolean {
   const parts = token.split(".")
   if (parts.length !== 2) return false

@@ -7,6 +7,8 @@ import {
 } from '@paypal/paypal-server-sdk'
 import { trackConversion } from '@/lib/track-conversion'
 
+export const dynamic = 'force-dynamic'
+
 function getPayPalClient() {
   const { PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET } = process.env
 

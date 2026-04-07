@@ -11,6 +11,8 @@ import {
 } from "@/lib/admin-auth"
 import { auditLogWithUser } from "@/lib/audit-log"
 
+export const dynamic = 'force-dynamic'
+
 async function verifyCaptcha(token: string): Promise<boolean> {
   const secretKey = process.env.HCAPTCHA_SECRET_KEY
   if (!secretKey) return true

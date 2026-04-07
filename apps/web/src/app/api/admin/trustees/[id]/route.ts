@@ -6,6 +6,8 @@ import { cookies } from "next/headers"
 import { timingSafeEqual, createHmac } from "crypto"
 import { auditLog } from "@/lib/audit-log"
 
+export const dynamic = 'force-dynamic'
+
 function verifySession(token: string): boolean {
   const secret = process.env.SESSION_SECRET
   if (!secret) return false

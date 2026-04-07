@@ -7,6 +7,8 @@ import { timingSafeEqual, createHmac } from "crypto"
 import { z } from "zod"
 import { auditLog } from "@/lib/audit-log"
 
+export const dynamic = 'force-dynamic'
+
 const storyUpdateSchema = z.object({
   slug: z.string().min(1).regex(/^[a-z0-9-]+$/).optional(),
   title: z.string().min(1).optional(),

@@ -3,6 +3,8 @@ import { db } from "@/lib/db"
 import { stories } from "@/lib/schema"
 import { eq, desc } from "drizzle-orm"
 
+export const dynamic = 'force-dynamic'
+
 export async function GET() {
   try {
     const data = await db

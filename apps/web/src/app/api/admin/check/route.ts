@@ -2,6 +2,8 @@ import { NextResponse } from "next/server"
 import { cookies } from "next/headers"
 import { verifySignedToken, getUserWithPermissions } from "@/lib/admin-auth"
 
+export const dynamic = 'force-dynamic'
+
 export async function GET() {
   const sessionSecret = process.env.SESSION_SECRET
   if (!sessionSecret) {

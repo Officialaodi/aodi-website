@@ -5,6 +5,8 @@ import { db } from "@/lib/db"
 import { emailAccounts } from "@/lib/schema"
 import { desc } from "drizzle-orm"
 
+export const dynamic = 'force-dynamic'
+
 function verifySignedToken(signedToken: string, secret: string): boolean {
   try {
     const [token, signature] = signedToken.split(".")

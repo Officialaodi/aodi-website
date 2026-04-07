@@ -4,6 +4,8 @@ import { adminUsers } from "@/lib/schema"
 import { createInitialSuperAdmin } from "@/lib/admin-auth"
 import { sql } from "drizzle-orm"
 
+export const dynamic = 'force-dynamic'
+
 export async function GET() {
   try {
     const result = await db.select({ count: sql<number>`count(*)` }).from(adminUsers)

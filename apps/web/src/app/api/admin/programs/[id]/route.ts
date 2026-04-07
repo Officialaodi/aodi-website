@@ -7,6 +7,8 @@ import { timingSafeEqual, createHmac } from "crypto"
 import { z } from "zod"
 import { auditLog } from "@/lib/audit-log"
 
+export const dynamic = 'force-dynamic'
+
 const stepSchema = z.object({
   title: z.string(),
   description: z.string(),

@@ -5,6 +5,8 @@ import { db } from "@/lib/db"
 import { mediaLibrary } from "@/lib/schema"
 import { desc } from "drizzle-orm"
 
+export const dynamic = 'force-dynamic'
+
 export async function GET() {
   try {
     const sessionSecret = process.env.SESSION_SECRET

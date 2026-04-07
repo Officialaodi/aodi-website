@@ -5,6 +5,8 @@ import { db } from "@/lib/db"
 import { mediaLibrary } from "@/lib/schema"
 import { eq } from "drizzle-orm"
 
+export const dynamic = 'force-dynamic'
+
 const UPLOAD_DIR = path.join(process.cwd(), "uploads")
 const LEGACY_UPLOAD_DIR = path.join(process.cwd(), "public", "uploads")
 
