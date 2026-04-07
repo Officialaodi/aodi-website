@@ -46,7 +46,7 @@ export async function GET(
 
       if (record?.data) {
         const buffer = Buffer.from(record.data, "base64")
-        return new NextResponse(buffer, {
+        return new Response(new Uint8Array(buffer), {
           status: 200,
           headers: {
             "Content-Type": record.mimeType || contentType,
@@ -66,7 +66,7 @@ export async function GET(
       buffer = await readFile(path.join(LEGACY_UPLOAD_DIR, sanitized))
     }
 
-    return new NextResponse(buffer, {
+    return new Response(new Uint8Array(buffer), {
       status: 200,
       headers: {
         "Content-Type": contentType,
