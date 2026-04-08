@@ -206,6 +206,7 @@ apps/web/src/app/admin/page.tsx                            ✅ EmailComposer imp
 | `BREVO_API_KEY` | ✅ Set in Replit Secrets |
 | `BREVO_SENDER_EMAIL` | ✅ Set in Replit Secrets |
 | `BREVO_SENDER_NAME` | ✅ Set in Replit Secrets |
+| `BREVO_WEBHOOK_SECRET` | ✅ Set in Replit Secrets — protects `/api/webhooks/brevo?token=` endpoint |
 | `NEXT_PUBLIC_BASE_URL` | ⚠️ Needed for reset links — verify it is set on Vercel |
 | `SENDGRID_API_KEY` | ❌ Can be removed — no longer used |
 

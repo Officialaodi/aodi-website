@@ -310,6 +310,16 @@ export const emailLogs = pgTable("email_logs", {
   errorMessage: text("error_message"),
   brevoMessageId: text("brevo_message_id"),
   sentAt: timestamp("sent_at").defaultNow(),
+  // Engagement tracking — populated by Brevo webhooks
+  deliveredAt: timestamp("delivered_at"),
+  openedAt: timestamp("opened_at"),
+  clickedAt: timestamp("clicked_at"),
+  bouncedAt: timestamp("bounced_at"),
+  bounceType: text("bounce_type"),       // "hard" | "soft"
+  openCount: integer("open_count").default(0),
+  clickCount: integer("click_count").default(0),
+  lastEventAt: timestamp("last_event_at"),
+  lastEventType: text("last_event_type"),
 })
 
 export type EmailLog = typeof emailLogs.$inferSelect
