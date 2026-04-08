@@ -1,5 +1,3 @@
-const { withSentryConfig } = require("@sentry/nextjs")
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
@@ -15,19 +13,6 @@ const nextConfig = {
     minimumCacheTTL: 60 * 60 * 24 * 30,
   },
   serverExternalPackages: ['jsdom', 'isomorphic-dompurify'],
-  webpack: (config, { isServer }) => {
-    if (!isServer) {
-      config.resolve.fallback = {
-        ...config.resolve.fallback,
-        jsdom: false,
-        canvas: false,
-        fs: false,
-        net: false,
-        tls: false,
-      }
-    }
-    return config
-  },
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production' ? { exclude: ['error', 'warn'] } : false,
   },
@@ -49,7 +34,6 @@ const nextConfig = {
         destination: '/programs/global-mentorship',
         permanent: true,
       },
-      // Form redirects to database-driven dynamic forms
       {
         source: '/get-involved/mentor',
         destination: '/forms/mentor',
@@ -149,17 +133,4 @@ const nextConfig = {
   }
 }
 
-module.exports = withSentryConfig(nextConfig, {
-  silent: true,
-  org: process.env.SENTRY_ORG,
-  project: process.env.SENTRY_PROJECT,
-  disableServerWebpackPlugin: !process.env.SENTRY_AUTH_TOKEN,
-  disableClientWebpackPlugin: !process.env.SENTRY_AUTH_TOKEN,
-}, {
-  widenClientFileUpload: true,
-  transpileClientSDK: true,
-  hideSourceMaps: true,
-  disableLogger: true,
-  autoInstrumentServerFunctions: false,
-  autoInstrumentMiddleware: false,
-})
+module.exports = nextConfig
