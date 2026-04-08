@@ -48,3 +48,4 @@ args = "cd apps/web && npx next dev -p 5000 -H 0.0.0.0"
 [userenv.shared]
 ADMIN_SESSION_SECRET = "d5b1a72d96ec5abcf1169d3ad8715bfa59dc9899d45fbef0dd5ca6b7ca1bac44"
 NEXT_PUBLIC_BASE_URL = "https://africaofourdreaminitiative.org"
+NEXT_PUBLIC_APP_URL = "https://africaofourdreaminitiative.org"
