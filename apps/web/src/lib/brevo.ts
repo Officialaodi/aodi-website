@@ -484,5 +484,7 @@ export async function sendNewsletterEmail(params: {
     </p>
   `)
 
-  return sendBrevoEmail({ to: { email: params.to, name: params.name }, subject: params.subject, html: fullHtml, tags: ['newsletter'] })
+  const result = await sendBrevoEmail({ to: { email: params.to, name: params.name }, subject: params.subject, html: fullHtml, tags: ['newsletter'] })
+  await logEmail({ recipientEmail: params.to, recipientName: params.name, subject: params.subject, body: params.htmlBody.slice(0, 500), status: result.success ? 'sent' : 'failed', errorMessage: result.error, brevoMessageId: result.messageId })
+  return result
 }

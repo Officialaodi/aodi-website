@@ -82,8 +82,11 @@ Created `apps/web/src/lib/brevo.ts` — single module all email features use.
 ### 2.5 CRM Bulk Email ✅ COMPLETE
 
 - ✅ "Send Email" toolbar action in Applications list when one or more rows are selected (`data-testid="button-bulk-email"`)
-- ✅ Bulk email iterates through selected applicants — opens `EmailComposer` for each, user composes and sends one at a time (explicit, deliberate — no accidental mass sends)
+- ✅ `BulkEmailDialog.tsx` — compose-once-send-all modal with recipients summary, template picker, personalisation hints (`{{name}}`, `{{firstName}}`), progress and result summary
+- ✅ Backed by `/api/admin/bulk-email` which calls `sendBulkEmail()` with 100ms throttle between sends; max 500 recipients
 - ✅ Reply button on each contact submission (pre-fills recipient from contact record)
+- ✅ "Thank" button on each donation row (pre-fills thank-you email composer with donor's email)
+- ✅ Contact submissions search bar + status filter (New / Replied / Resolved) with live client-side filtering + API `?search=` support
 - ✅ Each send logged individually in `email_logs`
 
 ---
@@ -92,12 +95,14 @@ Created `apps/web/src/lib/brevo.ts` — single module all email features use.
 
 **Files:** `NewsletterManager.tsx`, `POST /api/admin/newsletter/send/route.ts`
 
-- ✅ Newsletter composer in admin portal under "Newsletter" tab (subject, rich text body, preview)
-- ✅ Send to all active subscribers via Brevo
-- ✅ Test mode — send to a single test email before broadcasting
-- ✅ Unsubscribe link auto-appended to every newsletter (GDPR)
+- ✅ Newsletter composer in admin portal under "Newsletter" tab (subject, HTML body, subscriber stats)
+- ✅ Send to all active subscribers via Brevo with 80ms throttle between sends
+- ✅ Test mode — send only to a single test email before broadcasting
+- ✅ Unsubscribe link auto-appended to every newsletter (GDPR compliant)
 - ✅ Subscribers synced to Brevo contact list on sign-up (`syncContactToBrevo()` called in `/api/newsletter/route.ts`)
-- ✅ Unsubscribe route at `/api/newsletter/unsubscribe/route.ts`
+- ✅ Unsubscribe route at `/api/newsletter/unsubscribe/route.ts` — renders branded HTML confirmation page
+- ✅ Subscriber list tab with search, status badges (active/unsubscribed), source, delete button
+- ✅ Every newsletter delivery logged to `email_logs` table (appears in Email Logs viewer)
 
 ---
 
@@ -112,6 +117,20 @@ Created `apps/web/src/lib/brevo.ts` — single module all email features use.
 - ✅ CRM filter — shows only linked emails (`data-testid="button-linked-only"`)
 - ✅ Account filter dropdown
 - ✅ Brevo SMTP relay added as a provider option in `email-sync.ts` (host: `smtp-relay.brevo.com`, port 587)
+
+---
+
+### 2.7b Email Logs Viewer ✅ COMPLETE
+
+**File:** `apps/web/src/components/admin/EmailLogsViewer.tsx`
+
+- ✅ Shows all emails sent by the platform: application acks, admin manual sends, bulk email, password resets, newsletter sends
+- ✅ Search by recipient email **or subject** (`/api/admin/email-logs?search=...`) — both fields searched via `ilike`
+- ✅ Status filter: All / Sent / Failed / Pending
+- ✅ Expandable rows showing Brevo message ID, error message, linked application/contact
+- ✅ Stats row: total shown, sent count, failed count
+- ✅ Load-more pagination (50 per page)
+- ✅ "Email Logs" tab added to AdminSidebar under CRM group
 
 ---
 

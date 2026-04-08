@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { emailLogs } from "@/lib/schema"
-import { desc, eq, ilike, and, type SQL } from "drizzle-orm"
+import { desc, eq, ilike, and, or, type SQL } from "drizzle-orm"
 import { cookies } from "next/headers"
 import crypto from "crypto"
 
@@ -49,7 +49,12 @@ export async function GET(request: NextRequest) {
     }
 
     if (search) {
-      conditions.push(ilike(emailLogs.recipientEmail, `%${search}%`))
+      conditions.push(
+        or(
+          ilike(emailLogs.recipientEmail, `%${search}%`),
+          ilike(emailLogs.subject, `%${search}%`)
+        )!
+      )
     }
 
     const query = db
