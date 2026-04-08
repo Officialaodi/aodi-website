@@ -44,7 +44,6 @@ export async function POST(request: NextRequest) {
       payload: JSON.stringify(data),
     }).returning()
 
-    console.log('EmpowerHer application saved:', result[0])
 
     sendAdminNotification({
       formType: 'empowerher',

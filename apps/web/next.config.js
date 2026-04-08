@@ -14,9 +14,7 @@ const nextConfig = {
     formats: ['image/avif', 'image/webp'],
     minimumCacheTTL: 60 * 60 * 24 * 30,
   },
-  experimental: {
-    serverComponentsExternalPackages: ['jsdom', 'isomorphic-dompurify'],
-  },
+  serverExternalPackages: ['jsdom', 'isomorphic-dompurify'],
   webpack: (config, { isServer }) => {
     if (!isServer) {
       config.resolve.fallback = {

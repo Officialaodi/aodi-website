@@ -44,7 +44,6 @@ export async function POST(request: NextRequest) {
       payload: JSON.stringify(data),
     }).returning()
 
-    console.log('Campus Ambassador application saved:', result[0])
 
     sendAdminNotification({
       formType: 'campus-ambassador',

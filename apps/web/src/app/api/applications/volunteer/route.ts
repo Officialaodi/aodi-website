@@ -45,7 +45,6 @@ export async function POST(request: NextRequest) {
       payload: JSON.stringify(data),
     }).returning()
 
-    console.log('Volunteer application saved:', result[0])
 
     trackConversion({
       conversionType: 'application',
