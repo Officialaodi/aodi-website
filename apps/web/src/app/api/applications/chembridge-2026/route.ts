@@ -113,6 +113,19 @@ export async function POST(request: NextRequest) {
       console.error("Failed to track analytics:", analyticsError)
     }
 
+    const { sendApplicationAcknowledgement, sendAdminNotification } = await import('@/lib/brevo')
+
+    sendApplicationAcknowledgement('chembridge-2026', data.email, fullName, result[0].id)
+      .catch(err => console.error('[Brevo] Acknowledgement failed:', err))
+
+    sendAdminNotification({
+      formType: 'chembridge-2026',
+      submitterName: fullName,
+      email: data.email,
+      payload: data,
+      applicationId: result[0].id,
+    }).catch(err => console.error('[Brevo] Admin notification failed:', err))
+
     return NextResponse.json({ 
       success: true, 
       message: "Registration submitted successfully",

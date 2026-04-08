@@ -119,7 +119,7 @@ Forms protected:
 -   **UI Library**: Radix UI
 -   **Styling**: Tailwind CSS
 -   **Icons**: Lucide React
--   **Email Service**: SendGrid
+-   **Email Service**: Brevo (via REST API — BREVO_API_KEY, BREVO_SENDER_EMAIL, BREVO_SENDER_NAME)
 -   **Payment Gateways**: Paystack, PayPal
 -   **Analytics**: Google Analytics 4
 -   **Error Monitoring**: Sentry

@@ -3,6 +3,7 @@ import crypto from "crypto"
 import { db } from "@/lib/db"
 import { adminUsers, passwordResetTokens } from "@/lib/schema"
 import { eq } from "drizzle-orm"
+import { sendPasswordResetEmail } from "@/lib/brevo"
 
 export const dynamic = 'force-dynamic'
 
@@ -61,10 +62,11 @@ export async function POST(request: NextRequest) {
 
     const resetUrl = `${process.env.NEXT_PUBLIC_BASE_URL || ""}/admin/reset-password?token=${token}`
 
-    // TODO: Send email with reset link using SendGrid when configured
-    // For now, we just store the token - the user can implement email sending
-    if (process.env.NODE_ENV === "development") {
-      console.log(`[DEV ONLY] Password reset URL: ${resetUrl}`)
+    const emailResult = await sendPasswordResetEmail(user.email, user.fullName || 'Admin', resetUrl)
+
+    if (!emailResult.success) {
+      // Always log in dev so admins can reset even without Brevo configured
+      console.log(`[Password Reset] URL for ${user.email}: ${resetUrl}`)
     }
 
     return NextResponse.json({ success: true })

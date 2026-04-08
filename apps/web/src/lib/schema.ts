@@ -23,7 +23,10 @@ export type NewApplication = typeof applications.$inferInsert
 export const newsletterSubscribers = pgTable("newsletter_subscribers", {
   id: serial("id").primaryKey(),
   email: text("email").notNull().unique(),
+  fullName: text("full_name"),
   status: text("status").default("active"),
+  source: text("source"),
+  unsubscribedAt: timestamp("unsubscribed_at"),
   createdAt: timestamp("created_at").defaultNow(),
 })
 
@@ -295,12 +298,15 @@ export type NewEmailTemplate = typeof emailTemplates.$inferInsert
 export const emailLogs = pgTable("email_logs", {
   id: serial("id").primaryKey(),
   applicationId: integer("application_id"),
+  contactId: integer("contact_id"),
   templateId: integer("template_id"),
   recipientEmail: text("recipient_email").notNull(),
   recipientName: text("recipient_name"),
   subject: text("subject").notNull(),
   body: text("body").notNull(),
   status: text("status").default("sent"),
+  errorMessage: text("error_message"),
+  brevoMessageId: text("brevo_message_id"),
   sentAt: timestamp("sent_at").defaultNow(),
 })
 

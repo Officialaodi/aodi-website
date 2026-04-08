@@ -4,6 +4,7 @@ import { forms, formFields, applications } from "@/lib/schema"
 import { eq, asc } from "drizzle-orm"
 import { z } from "zod"
 import { verifyCaptcha } from "@/lib/captcha"
+import { sendApplicationAcknowledgement, sendAdminNotification } from "@/lib/brevo"
 
 export const dynamic = 'force-dynamic'
 
@@ -126,6 +127,17 @@ export async function POST(
       status: "new",
     }).returning()
     
+    sendApplicationAcknowledgement(form.slug, email, fullName, newApplication[0].id)
+      .catch(err => console.error('[Brevo] Form acknowledgement failed:', err))
+
+    sendAdminNotification({
+      formType: form.slug,
+      submitterName: fullName,
+      email,
+      payload: formData,
+      applicationId: newApplication[0].id,
+    }).catch(err => console.error('[Brevo] Admin notification failed:', err))
+
     return NextResponse.json({
       success: true,
       message: form.successMessage || "Thank you! Your submission has been received.",

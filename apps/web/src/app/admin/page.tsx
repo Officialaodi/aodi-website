@@ -18,6 +18,7 @@ import { ActivityLogDashboard } from "@/components/admin/ActivityLogDashboard"
 import { SiteSettingsManager } from "@/components/admin/SiteSettingsManager"
 import { FormsManager } from "@/components/admin/FormsManager"
 import { MediaLibraryManager } from "@/components/admin/MediaLibraryManager"
+import { NewsletterManager } from "@/components/admin/NewsletterManager"
 import { AdminSidebar } from "@/components/admin/AdminSidebar"
 import { RichTextEditor } from "@/components/ui/rich-text-editor"
 import { SwitchableChart, DonutChart } from "@/components/ui/charts"
@@ -1209,6 +1210,7 @@ export default function AdminDashboardPage() {
       "email-templates": "Email Templates",
       inbox: "Inbox",
       "email-settings": "Email Settings",
+      newsletter: "Newsletter",
       "site-settings": "Site Settings",
       forms: "Forms",
       "media-library": "Media Library",
@@ -2899,6 +2901,10 @@ export default function AdminDashboardPage() {
                 <EmailAccountsManager />
               </CardContent>
             </Card>
+          </div>
+
+          <div className={activeTab === "newsletter" ? "block" : "hidden"}>
+            <NewsletterManager />
           </div>
 
           <div className={activeTab === "site-settings" ? "block" : "hidden"}>

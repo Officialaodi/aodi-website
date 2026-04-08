@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { applications } from '@/lib/schema'
 import { checkRateLimit, getClientIdentifier } from '@/lib/rate-limit'
-import { sendFormNotification } from '@/lib/email'
+import { sendAdminNotification, sendApplicationAcknowledgement } from '@/lib/brevo'
 import { verifyCaptcha } from '@/lib/captcha'
 
 export const dynamic = 'force-dynamic'
@@ -46,14 +46,16 @@ export async function POST(request: NextRequest) {
 
     console.log('STEM Workshops application saved:', result[0])
 
-    sendFormNotification({
-      type: 'stem-workshops',
-      fullName: data.fullName,
+    sendAdminNotification({
+      formType: 'stem-workshops',
+      submitterName: data.fullName || data.name,
       email: data.email,
-      organization: data.institution,
-      submittedAt: new Date(),
       payload: data,
-    }).catch(err => console.error('Email notification failed:', err))
+      applicationId: result[0].id,
+    }).catch(err => console.error('[Brevo] Admin notification failed:', err))
+
+    sendApplicationAcknowledgement('stem-workshops', data.email, data.fullName || data.name, result[0].id)
+      .catch(err => console.error('[Brevo] Acknowledgement email failed:', err))
 
     return NextResponse.json(
       { message: 'STEM Workshop interest registered successfully', id: result[0].id },

@@ -26,6 +26,7 @@ import {
   KeyRound,
   LayoutDashboard,
   FolderOpen,
+  Send,
   type LucideIcon
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -58,6 +59,7 @@ const navGroups: NavGroup[] = [
       { label: "Contacts", value: "contacts", icon: MessageCircle },
       { label: "Inbox", value: "inbox", icon: Inbox },
       { label: "Email Templates", value: "email-templates", icon: Mail },
+      { label: "Newsletter", value: "newsletter", icon: Send },
       { label: "Email Settings", value: "email-settings", icon: Settings },
     ],
   },

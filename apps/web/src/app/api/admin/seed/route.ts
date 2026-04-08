@@ -219,7 +219,7 @@ const DEFAULT_IMPACT_METRICS = [
 ]
 
 const DEFAULT_INTEGRATIONS = [
-  { integrationKey: "sendgrid", displayName: "SendGrid", description: "Email delivery service for transactional and marketing emails", secretsRequired: "SENDGRID_API_KEY", category: "email" },
+  { integrationKey: "brevo", displayName: "Brevo (Sendinblue)", description: "Email delivery service for transactional emails, newsletters and CRM campaigns", secretsRequired: "BREVO_API_KEY,BREVO_SENDER_EMAIL,BREVO_SENDER_NAME", category: "email" },
   { integrationKey: "smtp", displayName: "SMTP Email", description: "Standard SMTP email configuration for sending emails", secretsRequired: "SMTP_HOST,SMTP_PORT,SMTP_USER,SMTP_PASS", category: "email" },
   { integrationKey: "google_analytics", displayName: "Google Analytics 4", description: "Website traffic analytics and user behavior tracking", secretsRequired: "NEXT_PUBLIC_GA_MEASUREMENT_ID", category: "analytics" },
   { integrationKey: "paystack", displayName: "Paystack", description: "African payment gateway for processing donations and payments", secretsRequired: "PAYSTACK_SECRET_KEY,NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY", category: "payments" },

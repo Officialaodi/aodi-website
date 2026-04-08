@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { applications } from '@/lib/schema'
 import { checkRateLimit, getClientIdentifier } from '@/lib/rate-limit'
-import { sendFormNotification } from '@/lib/email'
+import { sendAdminNotification, sendApplicationAcknowledgement } from '@/lib/brevo'
 import { verifyCaptcha } from '@/lib/captcha'
 
 export const dynamic = 'force-dynamic'
@@ -46,14 +46,16 @@ export async function POST(request: NextRequest) {
 
     console.log('Partner Africa application saved:', result[0])
 
-    sendFormNotification({
-      type: 'partner-africa',
-      fullName: data.contactName,
+    sendAdminNotification({
+      formType: 'partner-africa',
+      submitterName: data.fullName || data.contactName,
       email: data.email,
-      organization: data.organizationName,
-      submittedAt: new Date(),
       payload: data,
-    }).catch(err => console.error('Email notification failed:', err))
+      applicationId: result[0].id,
+    }).catch(err => console.error('[Brevo] Admin notification failed:', err))
+
+    sendApplicationAcknowledgement('partner-africa', data.email, data.fullName || data.contactName, result[0].id)
+      .catch(err => console.error('[Brevo] Acknowledgement email failed:', err))
 
     return NextResponse.json(
       { message: 'Partner Africa Project application received successfully', id: result[0].id },

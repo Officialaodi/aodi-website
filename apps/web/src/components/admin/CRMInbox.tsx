@@ -12,7 +12,8 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select"
-import { Search, RefreshCw, Mail, Paperclip, User, X, ExternalLink, Clock } from "lucide-react"
+import { Search, RefreshCw, Mail, Paperclip, User, X, ExternalLink, Clock, Reply } from "lucide-react"
+import { EmailComposer } from "./EmailComposer"
 
 interface SyncedEmail {
   id: number
@@ -47,6 +48,7 @@ export function CRMInbox() {
   const [selectedAccountId, setSelectedAccountId] = useState("all")
   const [linkedOnly, setLinkedOnly] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
+  const [replyOpen, setReplyOpen] = useState(false)
 
   useEffect(() => {
     fetchAccounts()
@@ -217,12 +219,22 @@ export function CRMInbox() {
         </div>
       </div>
 
+      {selectedEmail && (
+        <EmailComposer
+          open={replyOpen}
+          onClose={() => setReplyOpen(false)}
+          recipientEmail={selectedEmail.fromEmail}
+          recipientName={selectedEmail.fromName || undefined}
+          defaultSubject={`Re: ${selectedEmail.subject}`}
+        />
+      )}
+
       {/* Email Detail */}
       {selectedEmail && (
         <Card className="w-[500px] flex flex-col">
           <CardContent className="flex-1 overflow-hidden p-4">
             <div className="flex justify-between items-start mb-4">
-              <div>
+              <div className="flex-1 min-w-0">
                 <h3 className="font-semibold text-lg">{selectedEmail.subject}</h3>
                 <p className="text-sm text-gray-500">
                   From: {selectedEmail.fromName ? `${selectedEmail.fromName} <${selectedEmail.fromEmail}>` : selectedEmail.fromEmail}
@@ -234,9 +246,21 @@ export function CRMInbox() {
                   {new Date(selectedEmail.receivedAt).toLocaleString()}
                 </p>
               </div>
-              <Button variant="ghost" size="sm" onClick={() => setSelectedEmail(null)}>
-                <X className="w-4 h-4" />
-              </Button>
+              <div className="flex items-center gap-1 ml-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setReplyOpen(true)}
+                  data-testid="button-reply-email"
+                  className="text-green-800 border-green-200 hover:bg-green-50"
+                >
+                  <Reply className="w-4 h-4 mr-1" />
+                  Reply
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => setSelectedEmail(null)}>
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
             </div>
             
             {selectedEmail.linkedEntityType && (

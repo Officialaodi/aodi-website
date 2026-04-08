@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { applications } from '@/lib/schema'
 import { checkRateLimit, getClientIdentifier } from '@/lib/rate-limit'
-import { sendFormNotification } from '@/lib/email'
+import { sendAdminNotification, sendApplicationAcknowledgement } from '@/lib/brevo'
 import { verifyCaptcha } from '@/lib/captcha'
 import { trackConversion } from '@/lib/track-conversion'
 
@@ -53,14 +53,16 @@ export async function POST(request: NextRequest) {
       metadata: { applicationId: result[0].id, email: data.email },
     })
 
-    sendFormNotification({
-      type: 'mentor',
-      fullName: data.fullName,
+    sendAdminNotification({
+      formType: 'mentor',
+      submitterName: data.fullName,
       email: data.email,
-      organization: data.organisation || data.organization || data.currentRole,
-      submittedAt: new Date(),
       payload: data,
-    }).catch(err => console.error('Email notification failed:', err))
+      applicationId: result[0].id,
+    }).catch(err => console.error('[Brevo] Admin notification failed:', err))
+
+    sendApplicationAcknowledgement('mentor', data.email, data.fullName, result[0].id)
+      .catch(err => console.error('[Brevo] Acknowledgement email failed:', err))
 
     return NextResponse.json(
       { message: 'Mentor application received successfully', id: result[0].id },

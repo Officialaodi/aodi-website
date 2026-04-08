@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
-import { emailLogs, activityLogs } from "@/lib/schema"
+import { activityLogs, emailTemplates } from "@/lib/schema"
+import { eq } from "drizzle-orm"
 import { cookies } from "next/headers"
 import crypto from "crypto"
+import { sendCustomEmail, logEmail } from "@/lib/brevo"
 
 export const dynamic = 'force-dynamic'
 
@@ -26,88 +28,59 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { 
-      applicationId, 
-      templateId, 
-      recipientEmail, 
-      recipientName, 
-      subject, 
-      body 
-    } = await request.json()
+    const { applicationId, contactId, templateId, recipientEmail, recipientName, subject, body } = await request.json()
 
     if (!recipientEmail || !subject || !body) {
-      return NextResponse.json({ error: "Recipient email, subject and body required" }, { status: 400 })
+      return NextResponse.json({ error: "Recipient email, subject and body are required" }, { status: 400 })
     }
 
-    const sendGridApiKey = process.env.SENDGRID_API_KEY
+    let resolvedSubject = subject
+    let resolvedBody = body
 
-    if (sendGridApiKey) {
-      try {
-        const response = await fetch("https://api.sendgrid.com/v3/mail/send", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${sendGridApiKey}`,
-          },
-          body: JSON.stringify({
-            personalizations: [
-              {
-                to: [{ email: recipientEmail, name: recipientName }],
-              },
-            ],
-            from: {
-              email: "noreply@aodi.org.uk",
-              name: "AODI - Africa of Our Dream Education Initiative",
-            },
-            subject,
-            content: [
-              {
-                type: "text/plain",
-                value: body,
-              },
-              {
-                type: "text/html",
-                value: body.replace(/\n/g, "<br>"),
-              },
-            ],
-          }),
-        })
-
-        if (!response.ok) {
-          console.error("SendGrid error:", await response.text())
-        }
-      } catch (emailError) {
-        console.error("Email sending error:", emailError)
+    // If templateId provided, resolve the template
+    if (templateId) {
+      const [template] = await db.select().from(emailTemplates).where(eq(emailTemplates.id, templateId))
+      if (template) {
+        resolvedSubject = template.subject
+        resolvedBody = template.body
       }
     }
 
-    const [emailLog] = await db
-      .insert(emailLogs)
-      .values({
-        applicationId,
-        templateId,
-        recipientEmail,
-        recipientName,
-        subject,
-        body,
-        status: sendGridApiKey ? "sent" : "logged",
-      })
-      .returning()
+    const result = await sendCustomEmail({
+      to: recipientEmail,
+      name: recipientName,
+      subject: resolvedSubject,
+      htmlBody: resolvedBody,
+      applicationId,
+      contactId,
+      templateId,
+    })
 
     if (applicationId) {
       await db.insert(activityLogs).values({
         entityType: "application",
         entityId: applicationId,
         action: "email_sent",
-        details: `Email sent: ${subject}`,
+        details: `Email sent to ${recipientEmail}: ${resolvedSubject}`,
         performedBy: "Admin",
       })
     }
 
-    return NextResponse.json({ 
-      success: true, 
-      emailLog,
-      message: sendGridApiKey ? "Email sent successfully" : "Email logged (SendGrid not configured)" 
+    if (contactId) {
+      await db.insert(activityLogs).values({
+        entityType: "contact",
+        entityId: contactId,
+        action: "email_sent",
+        details: `Email sent to ${recipientEmail}: ${resolvedSubject}`,
+        performedBy: "Admin",
+      })
+    }
+
+    return NextResponse.json({
+      success: result.success,
+      message: result.success ? "Email sent successfully" : "Email logged but delivery failed",
+      brevoMessageId: result.messageId,
+      error: result.error,
     })
   } catch (error) {
     console.error("Error sending email:", error)

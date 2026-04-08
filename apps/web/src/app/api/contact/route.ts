@@ -3,6 +3,7 @@ import { db } from "@/lib/db"
 import { contacts, activityLogs } from "@/lib/schema"
 import { checkRateLimit, getClientIdentifier } from "@/lib/rate-limit"
 import { verifyCaptcha } from "@/lib/captcha"
+import { sendContactAcknowledgement, sendAdminNotification } from "@/lib/brevo"
 
 export const dynamic = 'force-dynamic'
 
@@ -84,6 +85,16 @@ export async function POST(request: NextRequest) {
       details: `Contact form submitted by ${sanitizedFullName} - ${sanitizedSubject || "No subject"}`,
       performedBy: "System",
     })
+
+    sendContactAcknowledgement(sanitizedEmail, sanitizedFullName, sanitizedSubject || 'General Enquiry', contact.id)
+      .catch(err => console.error('[Brevo] Contact acknowledgement failed:', err))
+
+    sendAdminNotification({
+      formType: 'contact',
+      submitterName: sanitizedFullName,
+      email: sanitizedEmail,
+      payload: { subject: sanitizedSubject, message: sanitizedMessage },
+    }).catch(err => console.error('[Brevo] Admin notification failed:', err))
 
     return NextResponse.json({ success: true, id: contact.id }, { status: 201 })
   } catch (error) {
