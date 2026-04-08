@@ -72,7 +72,13 @@ export async function POST(request: NextRequest) {
 
     try {
       const [log] = await db
-        .select({ id: emailLogs.id, openCount: emailLogs.openCount, clickCount: emailLogs.clickCount })
+        .select({
+          id: emailLogs.id,
+          openCount: emailLogs.openCount,
+          clickCount: emailLogs.clickCount,
+          openedAt: emailLogs.openedAt,
+          clickedAt: emailLogs.clickedAt,
+        })
         .from(emailLogs)
         .where(eq(emailLogs.brevoMessageId, messageId))
 
