@@ -27,6 +27,7 @@ export const newsletterSubscribers = pgTable("newsletter_subscribers", {
   status: text("status").default("active"),
   source: text("source"),
   unsubscribedAt: timestamp("unsubscribed_at"),
+  brevoContactId: text("brevo_contact_id"),
   createdAt: timestamp("created_at").defaultNow(),
 })
 
@@ -287,6 +288,7 @@ export const emailTemplates = pgTable("email_templates", {
   body: text("body").notNull(),
   category: text("category").notNull(),
   variables: text("variables"),
+  brevoTemplateId: integer("brevo_template_id"),
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),

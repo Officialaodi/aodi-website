@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { applicationId, contactId, templateId, recipientEmail, recipientName, subject, body } = await request.json()
+    const { applicationId, contactId, templateId, recipientEmail, recipientName, ccEmail, bccEmail, subject, body } = await request.json()
 
     if (!recipientEmail || !subject || !body) {
       return NextResponse.json({ error: "Recipient email, subject and body are required" }, { status: 400 })
@@ -49,6 +49,8 @@ export async function POST(request: NextRequest) {
     const result = await sendCustomEmail({
       to: recipientEmail,
       name: recipientName,
+      ccEmail: ccEmail || undefined,
+      bccEmail: bccEmail || undefined,
       subject: resolvedSubject,
       htmlBody: resolvedBody,
       applicationId,

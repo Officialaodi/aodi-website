@@ -11,6 +11,7 @@ import { ApplicationCRMPanel } from "@/components/admin/ApplicationCRMPanel"
 import { EmailTemplatesManager } from "@/components/admin/EmailTemplatesManager"
 import { EmailAccountsManager } from "@/components/admin/EmailAccountsManager"
 import { CRMInbox } from "@/components/admin/CRMInbox"
+import { EmailComposer } from "@/components/admin/EmailComposer"
 import { RoleManager } from "@/components/admin/RoleManager"
 import { UserManager } from "@/components/admin/UserManager"
 import { AnalyticsDashboard } from "@/components/admin/AnalyticsDashboard"
@@ -367,6 +368,11 @@ export default function AdminDashboardPage() {
   
   const [selectedAppIds, setSelectedAppIds] = useState<number[]>([])
   const [bulkActionLoading, setBulkActionLoading] = useState(false)
+  const [bulkEmailOpen, setBulkEmailOpen] = useState(false)
+  const [bulkEmailIndex, setBulkEmailIndex] = useState(0)
+  const [bulkEmailRecipients, setBulkEmailRecipients] = useState<{ email: string; name: string; id: number }[]>([])
+  const [contactReplyOpen, setContactReplyOpen] = useState(false)
+  const [contactReplyTarget, setContactReplyTarget] = useState<{ email: string; name: string } | null>(null)
   
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   
@@ -728,6 +734,15 @@ export default function AdminDashboardPage() {
     } finally {
       setBulkActionLoading(false)
     }
+  }
+
+  const handleBulkEmail = () => {
+    const selectedApps = applications.filter(a => selectedAppIds.includes(a.id) && a.email)
+    if (selectedApps.length === 0) return
+    const recipients = selectedApps.map(a => ({ email: a.email!, name: a.fullName || a.email!, id: a.id }))
+    setBulkEmailRecipients(recipients)
+    setBulkEmailIndex(0)
+    setBulkEmailOpen(true)
   }
 
   const handleSaveEvent = async (eventData: Partial<Event>) => {
@@ -1625,6 +1640,10 @@ export default function AdminDashboardPage() {
                         <SelectItem value="rejected">Set Rejected</SelectItem>
                       </SelectContent>
                     </Select>
+                    <Button variant="outline" size="sm" onClick={handleBulkEmail} disabled={bulkActionLoading} className="text-green-700 border-green-200" data-testid="button-bulk-email">
+                      <Mail className="w-4 h-4 mr-1" />
+                      Send Email
+                    </Button>
                     <Button variant="outline" size="sm" onClick={handleBulkDelete} disabled={bulkActionLoading} className="text-red-600" data-testid="button-bulk-delete">
                       <Trash2 className="w-4 h-4 mr-1" />
                       Delete
@@ -2865,8 +2884,24 @@ export default function AdminDashboardPage() {
                             </SelectContent>
                           </Select>
                         </div>
-                        <h3 className="font-semibold text-[#1F2933]">{contact.fullName}</h3>
-                        <p className="text-sm text-gray-600">{contact.email}</p>
+                        <div className="flex items-center justify-between gap-2">
+                          <div>
+                            <h3 className="font-semibold text-[#1F2933]">{contact.fullName}</h3>
+                            <p className="text-sm text-gray-600">{contact.email}</p>
+                          </div>
+                          {contact.email && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-green-800 border-green-200 hover:bg-green-50 flex-shrink-0"
+                              onClick={() => { setContactReplyTarget({ email: contact.email, name: contact.fullName }); setContactReplyOpen(true) }}
+                              data-testid={`button-reply-contact-${contact.id}`}
+                            >
+                              <Mail className="w-3 h-3 mr-1" />
+                              Reply
+                            </Button>
+                          )}
+                        </div>
                         {contact.subject && (
                           <p className="text-sm font-medium mt-2">Subject: {contact.subject}</p>
                         )}
@@ -3269,6 +3304,37 @@ export default function AdminDashboardPage() {
             fetchResourcesData()
           }}
           onClose={() => { setShowResourceForm(false); setEditingResource(null) }}
+        />
+      )}
+
+      {/* Bulk Email Composer — iterates through selected applicants */}
+      {bulkEmailOpen && bulkEmailRecipients.length > 0 && bulkEmailIndex < bulkEmailRecipients.length && (
+        <EmailComposer
+          open={bulkEmailOpen}
+          onClose={() => {
+            if (bulkEmailIndex + 1 < bulkEmailRecipients.length) {
+              setBulkEmailIndex(bulkEmailIndex + 1)
+            } else {
+              setBulkEmailOpen(false)
+              setBulkEmailIndex(0)
+              setBulkEmailRecipients([])
+            }
+          }}
+          recipientEmail={bulkEmailRecipients[bulkEmailIndex]?.email}
+          recipientName={bulkEmailRecipients[bulkEmailIndex]?.name}
+          applicationId={bulkEmailRecipients[bulkEmailIndex]?.id}
+          templateCategory="application"
+        />
+      )}
+
+      {/* Contact submission reply composer */}
+      {contactReplyOpen && contactReplyTarget && (
+        <EmailComposer
+          open={contactReplyOpen}
+          onClose={() => { setContactReplyOpen(false); setContactReplyTarget(null) }}
+          recipientEmail={contactReplyTarget.email}
+          recipientName={contactReplyTarget.name}
+          templateCategory="general"
         />
       )}
     </div>

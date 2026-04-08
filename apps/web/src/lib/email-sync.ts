@@ -49,6 +49,13 @@ const providerDefaults: Record<string, { imapHost: string; imapPort: number; smt
     smtpPort: 587,
     useTls: true
   },
+  brevo: {
+    imapHost: "",
+    imapPort: 993,
+    smtpHost: "smtp-relay.brevo.com",
+    smtpPort: 587,
+    useTls: true
+  },
   cpanel: {
     imapHost: "",
     imapPort: 993,

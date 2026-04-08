@@ -107,6 +107,8 @@ export interface SendEmailParams {
   html: string
   text?: string
   replyTo?: { email: string; name?: string }
+  cc?: { email: string; name?: string }[]
+  bcc?: { email: string; name?: string }[]
   tags?: string[]
 }
 
@@ -137,6 +139,8 @@ export async function sendBrevoEmail(params: SendEmailParams): Promise<SendEmail
 
     if (params.replyTo) payload.replyTo = params.replyTo
     if (params.tags) payload.tags = params.tags
+    if (params.cc && params.cc.length > 0) payload.cc = params.cc
+    if (params.bcc && params.bcc.length > 0) payload.bcc = params.bcc
 
     const response = await fetch(BREVO_API_URL, {
       method: 'POST',
@@ -337,6 +341,8 @@ export async function sendContactAcknowledgement(
 export async function sendCustomEmail(params: {
   to: string
   name?: string
+  ccEmail?: string
+  bccEmail?: string
   subject: string
   htmlBody: string
   applicationId?: number
@@ -344,7 +350,15 @@ export async function sendCustomEmail(params: {
   templateId?: number
 }): Promise<SendEmailResult> {
   const html = baseHtml(params.subject, params.subject, params.htmlBody)
-  const result = await sendBrevoEmail({ to: { email: params.to, name: params.name }, subject: params.subject, html, tags: ['manual-send'] })
+  const emailParams: SendEmailParams = {
+    to: { email: params.to, name: params.name },
+    subject: params.subject,
+    html,
+    tags: ['manual-send'],
+    ...(params.ccEmail ? { cc: [{ email: params.ccEmail }] } : {}),
+    ...(params.bccEmail ? { bcc: [{ email: params.bccEmail }] } : {}),
+  }
+  const result = await sendBrevoEmail(emailParams)
   await logEmail({
     recipientEmail: params.to,
     recipientName: params.name,
@@ -388,6 +402,64 @@ export async function sendBulkEmail(
   }
 
   return { sent, failed, errors }
+}
+
+// ─── Sync contact to Brevo contact list ──────────────────────────────────────
+
+export async function syncContactToBrevo(params: {
+  email: string
+  firstName?: string
+  lastName?: string
+  attributes?: Record<string, string | number | boolean>
+  listIds?: number[]
+}): Promise<{ success: boolean; error?: string }> {
+  const apiKey = getApiKey()
+  if (!apiKey) {
+    console.log('[Brevo] API key not configured — contact sync skipped')
+    return { success: false, error: 'BREVO_API_KEY not configured' }
+  }
+
+  try {
+    const payload: Record<string, unknown> = {
+      email: params.email,
+      attributes: {
+        FIRSTNAME: params.firstName || '',
+        LASTNAME: params.lastName || '',
+        ...(params.attributes || {}),
+      },
+      updateEnabled: true,
+    }
+    if (params.listIds && params.listIds.length > 0) {
+      payload.listIds = params.listIds
+    }
+
+    const response = await fetch('https://api.brevo.com/v3/contacts', {
+      method: 'POST',
+      headers: {
+        'accept': 'application/json',
+        'api-key': apiKey,
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    })
+
+    if (response.ok || response.status === 201 || response.status === 204) {
+      return { success: true }
+    }
+
+    const errorText = await response.text()
+    // 400 with "Contact already exist" is still a success (updateEnabled should handle it)
+    if (response.status === 400 && errorText.includes('already exist')) {
+      return { success: true }
+    }
+
+    console.error('[Brevo] Contact sync failed:', response.status, errorText)
+    return { success: false, error: `${response.status}: ${errorText}` }
+  } catch (err) {
+    const error = err instanceof Error ? err.message : String(err)
+    console.error('[Brevo] Contact sync exception:', error)
+    return { success: false, error }
+  }
 }
 
 // ─── Newsletter email ─────────────────────────────────────────────────────────

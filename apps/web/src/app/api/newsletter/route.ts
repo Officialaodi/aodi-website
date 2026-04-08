@@ -5,6 +5,7 @@ import { checkRateLimit, getClientIdentifier } from '@/lib/rate-limit'
 import { verifyCaptcha } from '@/lib/captcha'
 import { eq } from 'drizzle-orm'
 import { trackConversion } from '@/lib/track-conversion'
+import { syncContactToBrevo } from '@/lib/brevo'
 
 export const dynamic = 'force-dynamic'
 
@@ -52,6 +53,9 @@ export async function POST(request: NextRequest) {
     await db.insert(newsletterSubscribers).values({
       email: email.toLowerCase(),
     })
+
+    // Sync subscriber to Brevo contact list (non-blocking)
+    syncContactToBrevo({ email: email.toLowerCase() }).catch(() => {})
 
     trackConversion({
       conversionType: 'newsletter',

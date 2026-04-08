@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -8,7 +8,8 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
-import { Send, Mail, Loader2, CheckCircle2, AlertCircle } from "lucide-react"
+import { Send, Mail, Loader2, CheckCircle2, AlertCircle, ChevronDown, ChevronUp } from "lucide-react"
+import { substituteVariables } from "@/lib/email-templates"
 
 interface EmailTemplate {
   id: number
@@ -17,6 +18,13 @@ interface EmailTemplate {
   subject: string
   body: string
   category: string
+}
+
+interface RecipientSuggestion {
+  email: string
+  name: string
+  source: "contact" | "application"
+  id: number
 }
 
 interface EmailComposerProps {
@@ -48,9 +56,18 @@ export function EmailComposer({
   const [body, setBody] = useState(defaultBody)
   const [toEmail, setToEmail] = useState(recipientEmail)
   const [toName, setToName] = useState(recipientName)
+  const [ccEmail, setCcEmail] = useState("")
+  const [bccEmail, setBccEmail] = useState("")
+  const [showCcBcc, setShowCcBcc] = useState(false)
   const [sending, setSending] = useState(false)
   const [status, setStatus] = useState<"idle" | "success" | "error">("idle")
   const [errorMessage, setErrorMessage] = useState("")
+
+  // Recipient search/autocomplete
+  const [suggestions, setSuggestions] = useState<RecipientSuggestion[]>([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const [searchTimeout, setSearchTimeout] = useState<ReturnType<typeof setTimeout> | null>(null)
+  const suggestionsRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (open) {
@@ -59,7 +76,11 @@ export function EmailComposer({
       setSubject(defaultSubject)
       setBody(defaultBody)
       setSelectedTemplate("")
+      setCcEmail("")
+      setBccEmail("")
+      setShowCcBcc(false)
       setStatus("idle")
+      setSuggestions([])
       fetchTemplates()
     }
   }, [open, recipientEmail, recipientName, defaultSubject, defaultBody])
@@ -87,10 +108,63 @@ export function EmailComposer({
   }
 
   function applyVariables(text: string): string {
-    return text
-      .replace(/\{\{name\}\}/gi, toName || "")
-      .replace(/\{\{email\}\}/gi, toEmail || "")
-      .replace(/\{\{recipientName\}\}/gi, toName || "")
+    return substituteVariables(text, {
+      name: toName || "",
+      firstName: toName ? toName.split(" ")[0] : "",
+      email: toEmail || "",
+      recipientName: toName || "",
+    })
+  }
+
+  async function searchRecipients(query: string) {
+    if (query.length < 2) {
+      setSuggestions([])
+      setShowSuggestions(false)
+      return
+    }
+    try {
+      const res = await fetch(`/api/admin/contacts?search=${encodeURIComponent(query)}&limit=5`)
+      const contactSuggestions: RecipientSuggestion[] = []
+      if (res.ok) {
+        const data = await res.json()
+        const contacts = data.contacts || data || []
+        for (const c of contacts) {
+          if (c.email) {
+            contactSuggestions.push({ email: c.email, name: c.fullName || c.name || c.email, source: "contact", id: c.id })
+          }
+        }
+      }
+
+      const res2 = await fetch(`/api/admin/applications?search=${encodeURIComponent(query)}&limit=5`)
+      const appSuggestions: RecipientSuggestion[] = []
+      if (res2.ok) {
+        const data2 = await res2.json()
+        const apps = data2.applications || data2 || []
+        for (const a of apps) {
+          if (a.email) {
+            appSuggestions.push({ email: a.email, name: a.fullName || a.name || a.email, source: "application", id: a.id })
+          }
+        }
+      }
+
+      const combined = [...contactSuggestions, ...appSuggestions].slice(0, 8)
+      setSuggestions(combined)
+      setShowSuggestions(combined.length > 0)
+    } catch {}
+  }
+
+  function handleToEmailChange(value: string) {
+    setToEmail(value)
+    if (searchTimeout) clearTimeout(searchTimeout)
+    const t = setTimeout(() => searchRecipients(value), 300)
+    setSearchTimeout(t)
+  }
+
+  function selectSuggestion(s: RecipientSuggestion) {
+    setToEmail(s.email)
+    setToName(s.name)
+    setSuggestions([])
+    setShowSuggestions(false)
   }
 
   async function handleSend() {
@@ -110,6 +184,8 @@ export function EmailComposer({
         body: JSON.stringify({
           recipientEmail: toEmail,
           recipientName: toName,
+          ccEmail: ccEmail || undefined,
+          bccEmail: bccEmail || undefined,
           subject: applyVariables(subject),
           body: applyVariables(body),
           applicationId,
@@ -144,30 +220,97 @@ export function EmailComposer({
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4 py-2">
+        <div className="space-y-4 py-2 max-h-[70vh] overflow-y-auto pr-1">
           {/* To */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <Label htmlFor="ec-to-email">To (Email) *</Label>
-              <Input
-                id="ec-to-email"
-                type="email"
-                value={toEmail}
-                onChange={e => setToEmail(e.target.value)}
-                placeholder="recipient@example.com"
-                data-testid="input-composer-email"
-              />
+          <div className="space-y-2">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1 relative">
+                <Label htmlFor="ec-to-email">To (Email) *</Label>
+                <Input
+                  id="ec-to-email"
+                  type="email"
+                  value={toEmail}
+                  onChange={e => handleToEmailChange(e.target.value)}
+                  onFocus={() => toEmail.length >= 2 && setShowSuggestions(suggestions.length > 0)}
+                  onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                  placeholder="recipient@example.com"
+                  data-testid="input-composer-email"
+                  autoComplete="off"
+                />
+                {showSuggestions && suggestions.length > 0 && (
+                  <div
+                    ref={suggestionsRef}
+                    className="absolute top-full left-0 right-0 z-50 bg-white border rounded-md shadow-lg mt-1 max-h-48 overflow-y-auto"
+                    data-testid="recipient-suggestions"
+                  >
+                    {suggestions.map((s, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        className="w-full text-left px-3 py-2 hover:bg-gray-50 flex items-center justify-between gap-2 border-b last:border-0"
+                        onMouseDown={() => selectSuggestion(s)}
+                      >
+                        <div>
+                          <p className="text-sm font-medium">{s.name}</p>
+                          <p className="text-xs text-gray-500">{s.email}</p>
+                        </div>
+                        <Badge variant="outline" className="text-xs flex-shrink-0">
+                          {s.source === "contact" ? "Contact" : "Applicant"}
+                        </Badge>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="ec-to-name">Name</Label>
+                <Input
+                  id="ec-to-name"
+                  value={toName}
+                  onChange={e => setToName(e.target.value)}
+                  placeholder="Recipient name"
+                  data-testid="input-composer-name"
+                />
+              </div>
             </div>
-            <div className="space-y-1">
-              <Label htmlFor="ec-to-name">Name</Label>
-              <Input
-                id="ec-to-name"
-                value={toName}
-                onChange={e => setToName(e.target.value)}
-                placeholder="Recipient name"
-                data-testid="input-composer-name"
-              />
-            </div>
+
+            {/* CC / BCC toggle */}
+            <button
+              type="button"
+              className="text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1"
+              onClick={() => setShowCcBcc(!showCcBcc)}
+              data-testid="button-toggle-ccbcc"
+            >
+              {showCcBcc ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+              {showCcBcc ? "Hide CC / BCC" : "Add CC / BCC"}
+            </button>
+
+            {showCcBcc && (
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label htmlFor="ec-cc">CC</Label>
+                  <Input
+                    id="ec-cc"
+                    type="email"
+                    value={ccEmail}
+                    onChange={e => setCcEmail(e.target.value)}
+                    placeholder="cc@example.com"
+                    data-testid="input-composer-cc"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="ec-bcc">BCC</Label>
+                  <Input
+                    id="ec-bcc"
+                    type="email"
+                    value={bccEmail}
+                    onChange={e => setBccEmail(e.target.value)}
+                    placeholder="bcc@example.com"
+                    data-testid="input-composer-bcc"
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Template picker */}
@@ -208,7 +351,7 @@ export function EmailComposer({
           <div className="space-y-1">
             <div className="flex items-center justify-between">
               <Label htmlFor="ec-body">Message *</Label>
-              <span className="text-xs text-gray-400">Supports: {"{{name}}"}, {"{{email}}"}</span>
+              <span className="text-xs text-gray-400">Variables: {"{{name}}"}, {"{{firstName}}"}, {"{{email}}"}</span>
             </div>
             <Textarea
               id="ec-body"
