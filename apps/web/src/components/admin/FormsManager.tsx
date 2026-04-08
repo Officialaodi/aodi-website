@@ -23,7 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Trash2, Edit, GripVertical, Copy, ExternalLink, Eye, EyeOff, FileText, AlertCircle, Check } from "lucide-react"
+import { Plus, Trash2, Edit, ChevronUp, ChevronDown, Copy, ExternalLink, Eye, EyeOff, FileText, AlertCircle, Check } from "lucide-react"
 
 interface FormField {
   id?: number
@@ -80,8 +80,10 @@ export function FormsManager() {
   const [showFieldsDialog, setShowFieldsDialog] = useState(false)
   const [selectedForm, setSelectedForm] = useState<Form | null>(null)
   const [fields, setFields] = useState<FormField[]>([])
+  const [optionsText, setOptionsText] = useState<Record<string, string>>({})
   const [saving, setSaving] = useState(false)
   const [statusMessage, setStatusMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
+  const [fieldsStatus, setFieldsStatus] = useState<{ type: "success" | "error"; text: string } | null>(null)
 
   const showStatus = (type: "success" | "error", text: string) => {
     setStatusMessage({ type, text })
@@ -227,13 +229,31 @@ export function FormsManager() {
     }
   }
 
+  const buildOptionsText = (fieldsList: FormField[]): Record<string, string> => {
+    const map: Record<string, string> = {}
+    fieldsList.forEach((f) => {
+      if (f.options && Array.isArray(f.options)) {
+        map[f.fieldKey] = f.options
+          .map((o) => `${o.label ?? ""}|${o.value ?? ""}`)
+          .filter((line) => line !== "|")
+          .join("\n")
+      } else {
+        map[f.fieldKey] = ""
+      }
+    })
+    return map
+  }
+
   const handleOpenFieldsEditor = async (form: Form) => {
     setSelectedForm(form)
     try {
-      const res = await fetch(`/api/admin/forms/${form.id}`)
+      const res = await fetch(`/api/admin/forms/${form.id}/fields`)
       if (res.ok) {
         const data = await res.json()
-        setFields(data.fields || [])
+        const fieldsList: FormField[] = Array.isArray(data) ? data : []
+        setFields(fieldsList)
+        setOptionsText(buildOptionsText(fieldsList))
+        setFieldsStatus(null)
         setShowFieldsDialog(true)
       }
     } catch (error) {
@@ -243,10 +263,11 @@ export function FormsManager() {
 
   const handleAddField = () => {
     const lastSection = fields.length > 0 ? fields[fields.length - 1].section : null
+    const newKey = `field_${Date.now()}`
     setFields([
       ...fields,
       {
-        fieldKey: `field_${Date.now()}`,
+        fieldKey: newKey,
         label: "New Field",
         fieldType: "text",
         placeholder: null,
@@ -261,6 +282,7 @@ export function FormsManager() {
         isActive: true,
       },
     ])
+    setOptionsText((prev) => ({ ...prev, [newKey]: "" }))
   }
 
   const handleUpdateField = (index: number, updates: Partial<FormField>) => {
@@ -270,28 +292,68 @@ export function FormsManager() {
   }
 
   const handleRemoveField = (index: number) => {
+    const removed = fields[index]
     setFields(fields.filter((_, i) => i !== index))
+    setOptionsText((prev) => {
+      const next = { ...prev }
+      delete next[removed.fieldKey]
+      return next
+    })
+  }
+
+  const handleMoveField = (index: number, direction: "up" | "down") => {
+    const newFields = [...fields]
+    const targetIndex = direction === "up" ? index - 1 : index + 1
+    if (targetIndex < 0 || targetIndex >= newFields.length) return
+    ;[newFields[index], newFields[targetIndex]] = [newFields[targetIndex], newFields[index]]
+    setFields(newFields)
+  }
+
+  const parseOptionsText = (text: string): { label: string; value: string }[] | null => {
+    const lines = text.split("\n").filter((l) => l.trim())
+    if (lines.length === 0) return null
+    return lines.map((line) => {
+      const pipeIdx = line.indexOf("|")
+      if (pipeIdx === -1) {
+        const label = line.trim()
+        return { label, value: label.toLowerCase().replace(/\s+/g, "_") }
+      }
+      const label = line.slice(0, pipeIdx).trim()
+      const value = line.slice(pipeIdx + 1).trim()
+      return { label: label || value, value: value || label.toLowerCase().replace(/\s+/g, "_") }
+    })
   }
 
   const handleSaveFields = async () => {
     if (!selectedForm) return
     setSaving(true)
     try {
+      const fieldsToSave = fields.map((field) => {
+        if (field.fieldType === "select" || field.fieldType === "radio") {
+          const rawText = optionsText[field.fieldKey] ?? ""
+          return { ...field, options: parseOptionsText(rawText) }
+        }
+        return field
+      })
+
       const res = await fetch(`/api/admin/forms/${selectedForm.id}/fields`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(fields),
+        body: JSON.stringify(fieldsToSave),
       })
       if (res.ok) {
-        showStatus("success", "Form fields have been updated.")
-        setShowFieldsDialog(false)
+        const updatedFields: FormField[] = await res.json()
+        setFields(updatedFields)
+        setOptionsText(buildOptionsText(updatedFields))
+        setFieldsStatus({ type: "success", text: "Fields saved successfully." })
+        setTimeout(() => setFieldsStatus(null), 4000)
       } else {
         const error = await res.json()
-        showStatus("error", error.error || "Failed to save fields.")
+        setFieldsStatus({ type: "error", text: error.error || "Failed to save fields." })
       }
     } catch (error) {
       console.error("Error saving fields:", error)
-      showStatus("error", "Failed to save fields.")
+      setFieldsStatus({ type: "error", text: "Failed to save fields." })
     } finally {
       setSaving(false)
     }
@@ -577,9 +639,30 @@ export function FormsManager() {
             ) : (
               <div className="space-y-3">
                 {fields.map((field, index) => (
-                  <Card key={index} className="p-4">
+                  <Card key={field.fieldKey} className="p-4">
                     <div className="flex items-start gap-3">
-                      <GripVertical className="w-5 h-5 mt-2 text-muted-foreground cursor-move" />
+                      <div className="flex flex-col gap-1 mt-1 shrink-0">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0"
+                          onClick={() => handleMoveField(index, "up")}
+                          disabled={index === 0}
+                          data-testid={`button-move-up-${index}`}
+                        >
+                          <ChevronUp className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0"
+                          onClick={() => handleMoveField(index, "down")}
+                          disabled={index === fields.length - 1}
+                          data-testid={`button-move-down-${index}`}
+                        >
+                          <ChevronDown className="w-4 h-4" />
+                        </Button>
+                      </div>
                       <div className="flex-1 grid grid-cols-4 gap-3">
                         <div className="space-y-1">
                           <Label className="text-xs">Label *</Label>
@@ -675,20 +758,19 @@ export function FormsManager() {
                         </div>
                         {(field.fieldType === "select" || field.fieldType === "radio") && (
                           <div className="col-span-4 space-y-1">
-                            <Label className="text-xs">Options (one per line: label|value)</Label>
+                            <Label className="text-xs">Options (one per line: Label|value — press Enter for each option)</Label>
                             <Textarea
-                              value={field.options?.map(o => `${o.label}|${o.value}`).join("\n") || ""}
+                              value={optionsText[field.fieldKey] ?? ""}
                               onChange={(e) => {
-                                const options = e.target.value.split("\n").filter(Boolean).map(line => {
-                                  const [label, value] = line.split("|")
-                                  return { label: label?.trim() || "", value: (value?.trim() || label?.trim() || "") }
-                                })
-                                handleUpdateField(index, { options })
+                                setOptionsText((prev) => ({ ...prev, [field.fieldKey]: e.target.value }))
                               }}
-                              placeholder="Option 1|option1&#10;Option 2|option2"
-                              rows={3}
+                              placeholder={"In Person|in_person\nOnline|online\nHybrid|hybrid"}
+                              rows={4}
                               data-testid={`textarea-field-options-${index}`}
                             />
+                            <p className="text-xs text-muted-foreground">
+                              Each line = one option. Format: <code className="bg-muted px-1 rounded">Display Label|stored_value</code>. If no | is given, the label is used as the value.
+                            </p>
                           </div>
                         )}
                       </div>
@@ -712,9 +794,19 @@ export function FormsManager() {
             </Button>
           </div>
 
+          {fieldsStatus && (
+            <div className={`flex items-center gap-2 text-sm px-1 ${
+              fieldsStatus.type === "success"
+                ? "text-green-700 dark:text-green-400"
+                : "text-red-700 dark:text-red-400"
+            }`}>
+              {fieldsStatus.type === "success" ? <Check className="w-4 h-4 shrink-0" /> : <AlertCircle className="w-4 h-4 shrink-0" />}
+              {fieldsStatus.text}
+            </div>
+          )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowFieldsDialog(false)}>
-              Cancel
+              Close
             </Button>
             <Button onClick={handleSaveFields} disabled={saving}>
               {saving ? "Saving..." : "Save Fields"}
