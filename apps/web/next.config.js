@@ -153,9 +153,13 @@ module.exports = withSentryConfig(nextConfig, {
   silent: true,
   org: process.env.SENTRY_ORG,
   project: process.env.SENTRY_PROJECT,
+  disableServerWebpackPlugin: !process.env.SENTRY_AUTH_TOKEN,
+  disableClientWebpackPlugin: !process.env.SENTRY_AUTH_TOKEN,
 }, {
   widenClientFileUpload: true,
   transpileClientSDK: true,
   hideSourceMaps: true,
   disableLogger: true,
+  autoInstrumentServerFunctions: false,
+  autoInstrumentMiddleware: false,
 })
