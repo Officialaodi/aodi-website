@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "7VGU2k8okjU6u3X7UJI6-"
+uri = "file://1_email_feature.md"
+type = "text"
+title = "Email Feature Plan — Brevo Integration"
