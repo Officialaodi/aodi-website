@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { contacts, activityLogs } from "@/lib/schema"
-import { desc, eq } from "drizzle-orm"
+import { desc, eq, or, ilike, and, type SQL } from "drizzle-orm"
 import { cookies } from "next/headers"
 import crypto from "crypto"
 
@@ -28,16 +28,31 @@ export async function GET(request: NextRequest) {
 
   const { searchParams } = new URL(request.url)
   const status = searchParams.get("status")
+  const search = searchParams.get("search")
   const limit = parseInt(searchParams.get("limit") || "100")
 
   try {
-    let query = db.select().from(contacts)
+    const conditions: SQL[] = []
 
     if (status) {
-      query = query.where(eq(contacts.status, status)) as typeof query
+      conditions.push(eq(contacts.status, status))
     }
 
-    const contactsList = await query.orderBy(desc(contacts.createdAt)).limit(limit)
+    if (search) {
+      conditions.push(
+        or(
+          ilike(contacts.fullName, `%${search}%`),
+          ilike(contacts.email, `%${search}%`)
+        )!
+      )
+    }
+
+    const contactsList = await db
+      .select()
+      .from(contacts)
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
+      .orderBy(desc(contacts.createdAt))
+      .limit(limit)
 
     return NextResponse.json(contactsList)
   } catch (error) {

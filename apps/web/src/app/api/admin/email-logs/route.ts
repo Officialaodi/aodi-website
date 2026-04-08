@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { emailLogs } from "@/lib/schema"
-import { desc, eq } from "drizzle-orm"
+import { desc, eq, ilike, and, type SQL } from "drizzle-orm"
 import { cookies } from "next/headers"
 import crypto from "crypto"
 
@@ -28,16 +28,38 @@ export async function GET(request: NextRequest) {
 
   const { searchParams } = new URL(request.url)
   const applicationId = searchParams.get("applicationId")
+  const contactId = searchParams.get("contactId")
+  const status = searchParams.get("status")
+  const search = searchParams.get("search")
   const limit = parseInt(searchParams.get("limit") || "50")
 
   try {
-    let query = db.select().from(emailLogs)
+    const conditions: SQL[] = []
 
     if (applicationId) {
-      query = query.where(eq(emailLogs.applicationId, parseInt(applicationId))) as typeof query
+      conditions.push(eq(emailLogs.applicationId, parseInt(applicationId)))
     }
 
-    const logs = await query.orderBy(desc(emailLogs.sentAt)).limit(limit)
+    if (contactId) {
+      conditions.push(eq(emailLogs.contactId, parseInt(contactId)))
+    }
+
+    if (status && status !== "all") {
+      conditions.push(eq(emailLogs.status, status as "sent" | "failed" | "pending"))
+    }
+
+    if (search) {
+      conditions.push(ilike(emailLogs.recipientEmail, `%${search}%`))
+    }
+
+    const query = db
+      .select()
+      .from(emailLogs)
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
+      .orderBy(desc(emailLogs.sentAt))
+      .limit(limit)
+
+    const logs = await query
 
     return NextResponse.json(logs)
   } catch (error) {

@@ -12,6 +12,8 @@ import { EmailTemplatesManager } from "@/components/admin/EmailTemplatesManager"
 import { EmailAccountsManager } from "@/components/admin/EmailAccountsManager"
 import { CRMInbox } from "@/components/admin/CRMInbox"
 import { EmailComposer } from "@/components/admin/EmailComposer"
+import { BulkEmailDialog } from "@/components/admin/BulkEmailDialog"
+import { EmailLogsViewer } from "@/components/admin/EmailLogsViewer"
 import { RoleManager } from "@/components/admin/RoleManager"
 import { UserManager } from "@/components/admin/UserManager"
 import { AnalyticsDashboard } from "@/components/admin/AnalyticsDashboard"
@@ -362,14 +364,17 @@ export default function AdminDashboardPage() {
   
   const [contactsList, setContactsList] = useState<Contact[]>([])
   const [contactsLoading, setContactsLoading] = useState(false)
+  const [contactsSearch, setContactsSearch] = useState("")
+  const [contactsStatusFilter, setContactsStatusFilter] = useState("all")
+  const [donorEmailOpen, setDonorEmailOpen] = useState(false)
+  const [donorEmailTarget, setDonorEmailTarget] = useState<{ email: string; name: string } | null>(null)
   
   const [integrations, setIntegrations] = useState<IntegrationSetting[]>([])
   const [integrationsLoading, setIntegrationsLoading] = useState(false)
   
   const [selectedAppIds, setSelectedAppIds] = useState<number[]>([])
   const [bulkActionLoading, setBulkActionLoading] = useState(false)
-  const [bulkEmailOpen, setBulkEmailOpen] = useState(false)
-  const [bulkEmailIndex, setBulkEmailIndex] = useState(0)
+  const [bulkEmailDialogOpen, setBulkEmailDialogOpen] = useState(false)
   const [bulkEmailRecipients, setBulkEmailRecipients] = useState<{ email: string; name: string; id: number }[]>([])
   const [contactReplyOpen, setContactReplyOpen] = useState(false)
   const [contactReplyTarget, setContactReplyTarget] = useState<{ email: string; name: string } | null>(null)
@@ -741,8 +746,7 @@ export default function AdminDashboardPage() {
     if (selectedApps.length === 0) return
     const recipients = selectedApps.map(a => ({ email: a.email!, name: a.fullName || a.email!, id: a.id }))
     setBulkEmailRecipients(recipients)
-    setBulkEmailIndex(0)
-    setBulkEmailOpen(true)
+    setBulkEmailDialogOpen(true)
   }
 
   const handleSaveEvent = async (eventData: Partial<Event>) => {
@@ -1225,6 +1229,7 @@ export default function AdminDashboardPage() {
       "email-templates": "Email Templates",
       inbox: "Inbox",
       "email-settings": "Email Settings",
+      "email-logs": "Email Logs",
       newsletter: "Newsletter",
       "site-settings": "Site Settings",
       forms: "Forms",
@@ -2815,6 +2820,7 @@ export default function AdminDashboardPage() {
                           <th className="text-left py-3 px-2">Type</th>
                           <th className="text-left py-3 px-2">Status</th>
                           <th className="text-left py-3 px-2">Date</th>
+                          <th className="py-3 px-2"></th>
                         </tr>
                       </thead>
                       <tbody>
@@ -2837,6 +2843,20 @@ export default function AdminDashboardPage() {
                               </span>
                             </td>
                             <td className="py-3 px-2 text-gray-500">{formatDate(donation.createdAt)}</td>
+                            <td className="py-3 px-2">
+                              {!donation.isAnonymous && donation.donorEmail && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="text-green-800 border-green-200 hover:bg-green-50"
+                                  onClick={() => { setDonorEmailTarget({ email: donation.donorEmail, name: donation.donorName }); setDonorEmailOpen(true) }}
+                                  data-testid={`button-thank-donor-${donation.id}`}
+                                >
+                                  <Mail className="w-3 h-3 mr-1" />
+                                  Thank
+                                </Button>
+                              )}
+                            </td>
                           </tr>
                         ))}
                       </tbody>
@@ -2849,12 +2869,39 @@ export default function AdminDashboardPage() {
 
           <div className={activeTab === "contacts" ? "block" : "hidden"}>
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between gap-4 flex-wrap">
-                <CardTitle>Contact Submissions</CardTitle>
-                <Button variant="outline" size="sm" onClick={fetchContactsData} data-testid="button-refresh-contacts">
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                  Refresh
-                </Button>
+              <CardHeader className="pb-3">
+                <div className="flex flex-col gap-3">
+                  <div className="flex items-center justify-between gap-3 flex-wrap">
+                    <CardTitle>Contact Submissions</CardTitle>
+                    <Button variant="outline" size="sm" onClick={fetchContactsData} data-testid="button-refresh-contacts">
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                      Refresh
+                    </Button>
+                  </div>
+                  <div className="flex gap-3 flex-wrap">
+                    <div className="relative flex-1 min-w-[200px]">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <Input
+                        value={contactsSearch}
+                        onChange={e => setContactsSearch(e.target.value)}
+                        placeholder="Search by name, email or message..."
+                        className="pl-9"
+                        data-testid="input-contacts-search"
+                      />
+                    </div>
+                    <Select value={contactsStatusFilter} onValueChange={setContactsStatusFilter}>
+                      <SelectTrigger className="w-36" data-testid="select-contacts-status">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All statuses</SelectItem>
+                        <SelectItem value="new">New</SelectItem>
+                        <SelectItem value="replied">Replied</SelectItem>
+                        <SelectItem value="resolved">Resolved</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
                 {contactsLoading ? (
@@ -2863,7 +2910,14 @@ export default function AdminDashboardPage() {
                   <p className="text-center py-8 text-gray-500">No contact submissions yet.</p>
                 ) : (
                   <div className="space-y-4">
-                    {contactsList.map((contact) => (
+                    {contactsList
+                      .filter(c => {
+                        const q = contactsSearch.toLowerCase()
+                        const matchesSearch = !q || (c.fullName || "").toLowerCase().includes(q) || (c.email || "").toLowerCase().includes(q) || (c.message || "").toLowerCase().includes(q) || (c.subject || "").toLowerCase().includes(q)
+                        const matchesStatus = contactsStatusFilter === "all" || c.status === contactsStatusFilter
+                        return matchesSearch && matchesStatus
+                      })
+                      .map((contact) => (
                       <div
                         key={contact.id}
                         className="border rounded-lg p-4 hover:bg-gray-50"
@@ -2942,6 +2996,10 @@ export default function AdminDashboardPage() {
 
           <div className={activeTab === "newsletter" ? "block" : "hidden"}>
             <NewsletterManager />
+          </div>
+
+          <div className={activeTab === "email-logs" ? "block" : "hidden"}>
+            <EmailLogsViewer />
           </div>
 
           <div className={activeTab === "site-settings" ? "block" : "hidden"}>
@@ -3307,25 +3365,13 @@ export default function AdminDashboardPage() {
         />
       )}
 
-      {/* Bulk Email Composer — iterates through selected applicants */}
-      {bulkEmailOpen && bulkEmailRecipients.length > 0 && bulkEmailIndex < bulkEmailRecipients.length && (
-        <EmailComposer
-          open={bulkEmailOpen}
-          onClose={() => {
-            if (bulkEmailIndex + 1 < bulkEmailRecipients.length) {
-              setBulkEmailIndex(bulkEmailIndex + 1)
-            } else {
-              setBulkEmailOpen(false)
-              setBulkEmailIndex(0)
-              setBulkEmailRecipients([])
-            }
-          }}
-          recipientEmail={bulkEmailRecipients[bulkEmailIndex]?.email}
-          recipientName={bulkEmailRecipients[bulkEmailIndex]?.name}
-          applicationId={bulkEmailRecipients[bulkEmailIndex]?.id}
-          templateCategory="application"
-        />
-      )}
+      {/* Bulk Email Dialog — compose once, send to all selected applicants */}
+      <BulkEmailDialog
+        open={bulkEmailDialogOpen}
+        onClose={() => { setBulkEmailDialogOpen(false); setBulkEmailRecipients([]) }}
+        recipients={bulkEmailRecipients}
+        applicationIds={bulkEmailRecipients.map(r => r.id)}
+      />
 
       {/* Contact submission reply composer */}
       {contactReplyOpen && contactReplyTarget && (
@@ -3335,6 +3381,19 @@ export default function AdminDashboardPage() {
           recipientEmail={contactReplyTarget.email}
           recipientName={contactReplyTarget.name}
           templateCategory="general"
+        />
+      )}
+
+      {/* Donor thank-you email composer */}
+      {donorEmailOpen && donorEmailTarget && (
+        <EmailComposer
+          open={donorEmailOpen}
+          onClose={() => { setDonorEmailOpen(false); setDonorEmailTarget(null) }}
+          recipientEmail={donorEmailTarget.email}
+          recipientName={donorEmailTarget.name}
+          defaultSubject={`Thank you for your generous donation to AODI`}
+          defaultBody={`Dear {{firstName}},\n\nThank you so much for your generous donation to the Africa of Our Dream Education Initiative. Your support makes a real difference to the young people we serve across Africa.\n\nWith gratitude,\nThe AODI Team`}
+          templateCategory="donation"
         />
       )}
     </div>

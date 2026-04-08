@@ -60,6 +60,7 @@ const navGroups: NavGroup[] = [
       { label: "Inbox", value: "inbox", icon: Inbox },
       { label: "Email Templates", value: "email-templates", icon: Mail },
       { label: "Newsletter", value: "newsletter", icon: Send },
+      { label: "Email Logs", value: "email-logs", icon: List },
       { label: "Email Settings", value: "email-settings", icon: Settings },
     ],
   },
