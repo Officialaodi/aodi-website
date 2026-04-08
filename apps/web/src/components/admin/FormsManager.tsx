@@ -234,7 +234,13 @@ export function FormsManager() {
     fieldsList.forEach((f) => {
       if (f.options && Array.isArray(f.options)) {
         map[f.fieldKey] = f.options
-          .map((o) => `${o.label ?? ""}|${o.value ?? ""}`)
+          .map((o) => {
+            if (typeof o === "string") return `${o}|${(o as string).toLowerCase().replace(/\s+/g, "_")}`
+            const obj = o as { label?: string; value?: string }
+            const lbl = obj.label ?? ""
+            const val = obj.value ?? ""
+            return `${lbl}|${val}`
+          })
           .filter((line) => line !== "|")
           .join("\n")
       } else {

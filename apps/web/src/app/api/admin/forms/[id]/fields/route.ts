@@ -23,7 +23,10 @@ const fieldSchema = z.object({
     maxLength: z.number().optional(),
     pattern: z.string().optional(),
   }).optional().nullable(),
-  width: z.enum(["full", "half"]).optional().default("full"),
+  width: z.string().optional().nullable().transform(v => {
+    if (!v || !["full", "half", "third"].includes(v)) return "full"
+    return v
+  }),
   section: z.string().optional().nullable(),
   displayOrder: z.number().int().min(0).optional().default(0),
   isActive: z.boolean().optional().default(true),

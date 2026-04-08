@@ -1636,9 +1636,10 @@ export default function AdminDashboardPage() {
                 )}
                 {loading ? (
                   <p className="text-center py-8 text-gray-500">Loading applications...</p>
-                ) : applications.length === 0 ? (
-                  <p className="text-center py-8 text-gray-500">No applications found.</p>
                 ) : viewMode === "list" ? (
+                  applications.length === 0 ? (
+                    <p className="text-center py-8 text-gray-500">No applications found.</p>
+                  ) : (
                   <div className="space-y-4">
                     <div className="flex items-center justify-between gap-2 pb-2 border-b flex-wrap">
                       <div className="flex items-center gap-2">
@@ -1791,6 +1792,7 @@ export default function AdminDashboardPage() {
                       </div>
                     )}
                   </div>
+                  )
                 ) : (
                   /* Kanban View */
                   <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4" data-testid="kanban-board">
@@ -1814,7 +1816,7 @@ export default function AdminDashboardPage() {
                             const appId = parseInt(e.dataTransfer.getData("applicationId"))
                             if (appId) {
                               try {
-                                const response = await fetch(`/api/admin/applications/${appId}/status`, {
+                                const response = await fetch(`/api/admin/applications/${appId}`, {
                                   method: "PATCH",
                                   headers: { "Content-Type": "application/json" },
                                   body: JSON.stringify({ status: stage.key })
