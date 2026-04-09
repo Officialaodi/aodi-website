@@ -1,23 +1,20 @@
-import * as Sentry from "@sentry/nextjs"
-
 export async function register() {
-  if (process.env.NEXT_RUNTIME === 'nodejs') {
-    Sentry.init({
-      dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
-      tracesSampleRate: 0.1,
-      debug: false,
-      enabled: !!process.env.NEXT_PUBLIC_SENTRY_DSN,
-    })
-  }
+  if (!process.env.NEXT_PUBLIC_SENTRY_DSN) return
 
-  if (process.env.NEXT_RUNTIME === 'edge') {
-    Sentry.init({
-      dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
-      tracesSampleRate: 0.1,
-      debug: false,
-      enabled: !!process.env.NEXT_PUBLIC_SENTRY_DSN,
-    })
-  }
+  const { init } = await import("@sentry/nextjs")
+  init({
+    dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
+    tracesSampleRate: 0.1,
+    debug: false,
+  })
 }
 
-export const onRequestError = Sentry.captureRequestError
+export async function onRequestError(
+  error: { digest?: string } & Error,
+  request: { path: string; method: string; headers: Record<string, string> },
+  context: { routerKind: string; routePath: string; routeType: string }
+) {
+  if (!process.env.NEXT_PUBLIC_SENTRY_DSN) return
+  const Sentry = await import("@sentry/nextjs")
+  Sentry.captureRequestError(error, request, context)
+}
