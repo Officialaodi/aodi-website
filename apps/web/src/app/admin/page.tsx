@@ -291,7 +291,7 @@ export default function AdminDashboardPage() {
   const [allApplications, setAllApplications] = useState<Application[]>([])
   const [loading, setLoading] = useState(true)
   const [authenticated, setAuthenticated] = useState(false)
-  const [filter, setFilter] = useState("all")
+  const [filter, setFilter] = useState("applications")
   const [statusFilter, setStatusFilter] = useState("all")
   const [viewMode, setViewMode] = useState<"list" | "kanban">("list")
   const [selectedApp, setSelectedApp] = useState<Application | null>(null)
@@ -438,6 +438,8 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     if (filter === "all") {
       setApplications(allApplications)
+    } else if (filter === "applications") {
+      setApplications(allApplications.filter(a => a.type !== "contact"))
     } else {
       setApplications(allApplications.filter(a => a.type === filter))
     }
@@ -474,6 +476,8 @@ export default function AdminDashboardPage() {
         setAllApplications(data)
         if (filter === "all") {
           setApplications(data)
+        } else if (filter === "applications") {
+          setApplications(data.filter((a: Application) => a.type !== "contact"))
         } else {
           setApplications(data.filter((a: Application) => a.type === filter))
         }
@@ -868,7 +872,8 @@ export default function AdminDashboardPage() {
   }
 
   const exportCSV = () => {
-    const dataToExport = filter === "all" && statusFilter === "all" ? allApplications : filteredApplications
+    const isDefaultView = (filter === "all" || filter === "applications") && statusFilter === "all"
+    const dataToExport = isDefaultView ? (filter === "all" ? allApplications : allApplications.filter(a => a.type !== CONTACT_TYPE)) : filteredApplications
 
     const SYSTEM_KEYS = new Set(["formId", "formName", "submittedAt", "captchaToken", "agreedToPolicy"])
 
@@ -1150,13 +1155,16 @@ export default function AdminDashboardPage() {
     contact: { label: "Contact", icon: MessageCircle },
   }
 
-  // Dynamically generate application types from actual data
+  // Dynamically generate application types from actual data — exclude 'contact' from program applications
+  const CONTACT_TYPE = "contact"
   const uniqueTypes = [...new Set(allApplications.map(a => a.type))]
-  const applicationTypes = uniqueTypes.map(key => ({
-    key,
-    label: baseTypeConfig[key]?.label || key.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
-    icon: baseTypeConfig[key]?.icon || Users,
-  }))
+  const applicationTypes = uniqueTypes
+    .filter(key => key !== CONTACT_TYPE)
+    .map(key => ({
+      key,
+      label: baseTypeConfig[key]?.label || key.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
+      icon: baseTypeConfig[key]?.icon || Users,
+    }))
 
   const statusOptions = [
     { key: "all", label: "All Stages" },
@@ -1168,14 +1176,24 @@ export default function AdminDashboardPage() {
   ]
 
   const stats: Record<string, number> = {
-    total: allApplications.length,
+    applications: allApplications.filter(a => a.type !== CONTACT_TYPE).length,
+    messages: allApplications.filter(a => a.type === CONTACT_TYPE).length,
   }
   applicationTypes.forEach(t => {
     stats[t.key] = allApplications.filter(a => a.type === t.key).length
   })
 
   const filteredApplications = applications.filter(app => {
-    const typeMatch = filter === "all" || app.type === filter
+    let typeMatch: boolean
+    if (filter === "all") {
+      typeMatch = true
+    } else if (filter === "applications") {
+      typeMatch = app.type !== CONTACT_TYPE
+    } else if (filter === "contact") {
+      typeMatch = app.type === CONTACT_TYPE
+    } else {
+      typeMatch = app.type === filter
+    }
     const statusMatch = statusFilter === "all" || app.status === statusFilter
     
     // Search filter (name or email)
@@ -1211,7 +1229,11 @@ export default function AdminDashboardPage() {
   )
   
   // Data for charts - should reflect type filter but show all statuses
-  const chartApplications = filter === "all" ? allApplications : allApplications.filter(a => a.type === filter)
+  const chartApplications =
+    filter === "all" ? allApplications :
+    filter === "applications" ? allApplications.filter(a => a.type !== CONTACT_TYPE) :
+    filter === "contact" ? allApplications.filter(a => a.type === CONTACT_TYPE) :
+    allApplications.filter(a => a.type === filter)
   
   // Extract unique payload fields for filtering
   const payloadFields = [...new Set(
@@ -1227,7 +1249,7 @@ export default function AdminDashboardPage() {
   
   // Clear all filters function
   const clearAllFilters = () => {
-    setFilter("all")
+    setFilter("applications")
     setStatusFilter("all")
     setSearchQuery("")
     setDateFrom("")
@@ -1235,7 +1257,7 @@ export default function AdminDashboardPage() {
     setPayloadFilter({ field: "", value: "" })
   }
   
-  const hasActiveFilters = filter !== "all" || statusFilter !== "all" || searchQuery || dateFrom || dateTo || payloadFilter.field
+  const hasActiveFilters = (filter !== "all" && filter !== "applications") || statusFilter !== "all" || searchQuery || dateFrom || dateTo || payloadFilter.field
   
   // Custom chart builder computed values
   const customChartApps = customChartType === "all" 
@@ -1349,12 +1371,12 @@ export default function AdminDashboardPage() {
             {/* Applications content */}
             {/* Type Filter Cards */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
-              <Card className={`cursor-pointer ${filter === "all" ? "ring-2 ring-[#0F3D2E]" : ""}`} onClick={() => setFilter("all")} data-testid="card-stat-all">
+              <Card className={`cursor-pointer ${filter === "applications" ? "ring-2 ring-[#0F3D2E]" : ""}`} onClick={() => setFilter("applications")} data-testid="card-stat-all">
                 <CardContent className="pt-4 pb-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-xs text-gray-600">All Types</p>
-                      <p className="text-2xl font-bold text-[#0F3D2E]">{stats.total}</p>
+                      <p className="text-xs text-gray-600">All Applications</p>
+                      <p className="text-2xl font-bold text-[#0F3D2E]">{stats.applications}</p>
                     </div>
                     <Users className="w-8 h-8 text-gray-400" />
                   </div>
@@ -1377,6 +1399,18 @@ export default function AdminDashboardPage() {
                   </Card>
                 )
               })}
+
+              <Card className={`cursor-pointer border-blue-200 ${filter === "contact" ? "ring-2 ring-blue-600" : ""}`} onClick={() => setFilter("contact")} data-testid="card-stat-contact">
+                <CardContent className="pt-4 pb-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-blue-600 font-medium">Contact Messages</p>
+                      <p className="text-2xl font-bold text-blue-700">{stats.messages}</p>
+                    </div>
+                    <MessageCircle className="w-8 h-8 text-blue-300" />
+                  </div>
+                </CardContent>
+              </Card>
             </div>
 
             {/* Status/Pipeline Filter */}
@@ -1392,7 +1426,10 @@ export default function AdminDashboardPage() {
                   {status.label}
                   {status.key !== "all" && (
                     <span className="ml-2 text-xs opacity-70">
-                      ({allApplications.filter(a => a.status === status.key && (filter === "all" || a.type === filter)).length})
+                      ({allApplications.filter(a => {
+                        const typeOk = filter === "all" ? true : filter === "applications" ? a.type !== CONTACT_TYPE : filter === "contact" ? a.type === CONTACT_TYPE : a.type === filter
+                        return a.status === status.key && typeOk
+                      }).length})
                     </span>
                   )}
                 </Button>
@@ -1406,7 +1443,7 @@ export default function AdminDashboardPage() {
               >
                 <SlidersHorizontal className="w-4 h-4 mr-2" />
                 Advanced Filters
-                {hasActiveFilters && <span className="ml-2 px-1.5 py-0.5 text-xs bg-white text-[#0F3D2E] rounded-full">{[searchQuery, dateFrom, dateTo, payloadFilter.field].filter(Boolean).length + (filter !== "all" ? 1 : 0) + (statusFilter !== "all" ? 1 : 0)}</span>}
+                {hasActiveFilters && <span className="ml-2 px-1.5 py-0.5 text-xs bg-white text-[#0F3D2E] rounded-full">{[searchQuery, dateFrom, dateTo, payloadFilter.field].filter(Boolean).length + (filter !== "all" && filter !== "applications" ? 1 : 0) + (statusFilter !== "all" ? 1 : 0)}</span>}
               </Button>
             </div>
 
@@ -1507,8 +1544,10 @@ export default function AdminDashboardPage() {
               <Card>
                 <CardHeader>
                   <CardTitle className="text-base">
-                    Applications by Type
-                    {filter !== "all" && <span className="text-sm font-normal text-gray-500 ml-2">(Filtered: {baseTypeConfig[filter]?.label || filter})</span>}
+                    {filter === "contact" ? "Contact Messages" : "Applications by Type"}
+                    {filter !== "all" && filter !== "applications" && filter !== "contact" && (
+                      <span className="text-sm font-normal text-gray-500 ml-2">(Filtered: {baseTypeConfig[filter]?.label || filter})</span>
+                    )}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -1536,8 +1575,10 @@ export default function AdminDashboardPage() {
               <Card>
                 <CardHeader>
                   <CardTitle className="text-base">
-                    Applications by Status
-                    {filter !== "all" && <span className="text-sm font-normal text-gray-500 ml-2">(Filtered: {baseTypeConfig[filter]?.label || filter})</span>}
+                    {filter === "contact" ? "Messages by Status" : "Applications by Status"}
+                    {filter !== "all" && filter !== "applications" && filter !== "contact" && (
+                      <span className="text-sm font-normal text-gray-500 ml-2">(Filtered: {baseTypeConfig[filter]?.label || filter})</span>
+                    )}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -1654,7 +1695,7 @@ export default function AdminDashboardPage() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between gap-4 flex-wrap">
                 <CardTitle>
-                  {filter === "all" ? "All Applications" : applicationTypes.find(t => t.key === filter)?.label || "Applications"}
+                  {filter === "all" ? "All Submissions" : filter === "applications" ? "All Applications" : filter === "contact" ? "Contact Messages" : applicationTypes.find(t => t.key === filter)?.label || "Applications"}
                   {statusFilter !== "all" && ` - ${statusOptions.find(s => s.key === statusFilter)?.label}`}
                   <span className="ml-2 text-sm font-normal text-gray-500">({filteredApplications.length})</span>
                 </CardTitle>
@@ -1887,7 +1928,7 @@ export default function AdminDashboardPage() {
                       { key: "accepted", label: "Accepted", color: "bg-green-100 border-green-300" },
                       { key: "rejected", label: "Rejected", color: "bg-red-100 border-red-300" },
                     ].map((stage) => {
-                      const stageApps = (filter === "all" ? allApplications : allApplications.filter(a => a.type === filter))
+                      const stageApps = (filter === "all" ? allApplications : filter === "applications" ? allApplications.filter(a => a.type !== CONTACT_TYPE) : filter === "contact" ? allApplications.filter(a => a.type === CONTACT_TYPE) : allApplications.filter(a => a.type === filter))
                         .filter(app => app.status === stage.key)
                       return (
                         <div 
