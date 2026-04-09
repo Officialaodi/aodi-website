@@ -20,6 +20,7 @@ import {
   AlertCircle,
   Zap,
   Info,
+  RotateCcw,
 } from "lucide-react"
 import {
   Select,
@@ -69,6 +70,7 @@ export function EmailTemplatesManager() {
   const [previewTemplate, setPreviewTemplate] = useState<EmailTemplate | null>(null)
   const [seedStatus, setSeedStatus] = useState<"idle" | "loading" | "success" | "error">("idle")
   const [seedMessage, setSeedMessage] = useState("")
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle")
 
   const [formData, setFormData] = useState({
     name: "",
@@ -123,8 +125,10 @@ export function EmailTemplatesManager() {
 
   const handleSave = async () => {
     setSaveError("")
+    setSaveStatus("saving")
     if (!formData.name.trim() || !formData.slug.trim() || !formData.subject.trim() || !formData.body.trim()) {
       setSaveError("Name, slug, subject and body are all required.")
+      setSaveStatus("idle")
       return
     }
 
@@ -139,21 +143,42 @@ export function EmailTemplatesManager() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...formData,
-          variables: formData.variables ? formData.variables.split(",").map(v => v.trim()) : null,
+          // Always send variables as comma-separated string
+          variables: formData.variables ? formData.variables.split(",").map(v => v.trim()).filter(Boolean).join(",") : "",
         }),
       })
 
       if (response.ok) {
+        setSaveStatus("saved")
         fetchTemplates()
-        setShowForm(false)
-        setEditingTemplate(null)
+        setTimeout(() => {
+          setShowForm(false)
+          setEditingTemplate(null)
+          setSaveStatus("idle")
+        }, 900)
       } else {
         const data = await response.json()
         setSaveError(data.error || "Failed to save template.")
+        setSaveStatus("error")
       }
     } catch {
       setSaveError("Network error. Please try again.")
+      setSaveStatus("error")
     }
+  }
+
+  const handleResetToDefault = () => {
+    if (!editingTemplate) return
+    const defaultTmpl = TRANSACTIONAL_TEMPLATES.find(t => t.slug === editingTemplate.slug)
+    if (!defaultTmpl) return
+    if (!confirm("Reset this template to the built-in default? Your edits will be lost.")) return
+    setFormData(prev => ({
+      ...prev,
+      subject: defaultTmpl.subject,
+      body: defaultTmpl.body,
+      variables: defaultTmpl.variables.join(", "),
+    }))
+    setSaveError("")
   }
 
   const handleDelete = async (id: number) => {
@@ -504,13 +529,39 @@ export function EmailTemplatesManager() {
                   <p className="text-xs text-gray-400 mt-1">For documentation only — helps you remember which variables this template uses.</p>
                 </div>
                 {saveError && (
-                  <p className="text-red-600 text-sm" data-testid="text-save-error">{saveError}</p>
+                  <p className="text-red-600 text-sm flex items-center gap-1.5" data-testid="text-save-error">
+                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                    {saveError}
+                  </p>
                 )}
-                <div className="flex gap-2 pt-2">
-                  <Button onClick={handleSave} className="flex-1 bg-green-800 hover:bg-green-900 text-white" data-testid="button-save-template">
-                    {editingTemplate ? "Update Template" : "Create Template"}
+                <div className="flex gap-2 pt-2 flex-wrap">
+                  <Button
+                    onClick={handleSave}
+                    disabled={saveStatus === "saving" || saveStatus === "saved"}
+                    className={`flex-1 text-white ${saveStatus === "saved" ? "bg-green-600 hover:bg-green-600" : "bg-green-800 hover:bg-green-900"}`}
+                    data-testid="button-save-template"
+                  >
+                    {saveStatus === "saving" ? (
+                      <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving…</>
+                    ) : saveStatus === "saved" ? (
+                      <><CheckCircle2 className="w-4 h-4 mr-2" /> Saved!</>
+                    ) : (
+                      editingTemplate ? "Update Template" : "Create Template"
+                    )}
                   </Button>
-                  <Button variant="outline" onClick={() => { setShowForm(false); setSaveError("") }}>
+                  {editingTemplate && TRANSACTIONAL_SLUGS.has(editingTemplate.slug) && TRANSACTIONAL_TEMPLATES.find(t => t.slug === editingTemplate.slug) && (
+                    <Button
+                      variant="outline"
+                      onClick={handleResetToDefault}
+                      title="Reset subject and body to the built-in default"
+                      data-testid="button-reset-template"
+                      className="text-amber-700 border-amber-200 hover:bg-amber-50"
+                    >
+                      <RotateCcw className="w-4 h-4 mr-1.5" />
+                      Reset to Default
+                    </Button>
+                  )}
+                  <Button variant="outline" onClick={() => { setShowForm(false); setSaveError(""); setSaveStatus("idle") }}>
                     Cancel
                   </Button>
                 </div>

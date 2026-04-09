@@ -63,17 +63,38 @@ export async function PATCH(
   const { id } = await params
 
   try {
-    const updates = await request.json()
-    
-    if (updates.variables && typeof updates.variables !== "string") {
-      updates.variables = JSON.stringify(updates.variables)
+    const body = await request.json()
+
+    // Only allow updating safe fields — never overwrite the slug
+    const allowedUpdates: Record<string, unknown> = {}
+    if (body.name !== undefined) allowedUpdates.name = body.name
+    if (body.subject !== undefined) allowedUpdates.subject = body.subject
+    if (body.body !== undefined) allowedUpdates.body = body.body
+    if (body.category !== undefined) allowedUpdates.category = body.category
+    if (body.isActive !== undefined) allowedUpdates.isActive = body.isActive
+
+    // Normalise variables: accept array or comma-string, always store as comma-string
+    if (body.variables !== undefined) {
+      if (Array.isArray(body.variables)) {
+        allowedUpdates.variables = body.variables.map((v: string) => v.trim()).join(",")
+      } else if (typeof body.variables === "string") {
+        allowedUpdates.variables = body.variables
+      } else {
+        allowedUpdates.variables = null
+      }
     }
+
+    allowedUpdates.updatedAt = new Date()
 
     const [updated] = await db
       .update(emailTemplates)
-      .set({ ...updates, updatedAt: new Date() })
+      .set(allowedUpdates)
       .where(eq(emailTemplates.id, parseInt(id)))
       .returning()
+
+    if (!updated) {
+      return NextResponse.json({ error: "Template not found" }, { status: 404 })
+    }
 
     return NextResponse.json(updated)
   } catch (error) {

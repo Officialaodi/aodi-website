@@ -61,6 +61,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "All fields required" }, { status: 400 })
     }
 
+    // Normalise variables: accept array or comma-string, always store as comma-string
+    let variablesStr: string | null = null
+    if (Array.isArray(variables)) {
+      variablesStr = variables.map((v: string) => v.trim()).join(",")
+    } else if (typeof variables === "string" && variables.trim()) {
+      variablesStr = variables.trim()
+    }
+
     const [template] = await db
       .insert(emailTemplates)
       .values({
@@ -69,7 +77,7 @@ export async function POST(request: NextRequest) {
         subject,
         body,
         category,
-        variables: variables ? JSON.stringify(variables) : null,
+        variables: variablesStr,
         isActive: true,
       })
       .returning()
