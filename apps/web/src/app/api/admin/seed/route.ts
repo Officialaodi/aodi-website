@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { db } from "@/lib/db"
-import { permissions, roles, rolePermissions, forms, formFields, integrationSettings, partners, stories, resources, programs, testimonials, impactMetrics } from "@/lib/schema"
-import { eq, sql } from "drizzle-orm"
+import { permissions, roles, rolePermissions, forms, formFields, integrationSettings, partners, stories, resources, programs, testimonials, impactMetrics, applications, contacts } from "@/lib/schema"
+import { eq, sql, notExists } from "drizzle-orm"
 
 export const dynamic = 'force-dynamic'
 
@@ -355,6 +355,43 @@ export async function POST(request: Request) {
     } else {
       results.impactMetricsCreated = 0
     }
+
+    // Backfill: create CRM contacts for any applications that don't have a matching contact
+    const formTypeToLabel: Record<string, string> = {
+      contact: 'Contact Form',
+      mentor: 'Mentor Application',
+      mentee: 'Mentee Application',
+      volunteer: 'Volunteer Application',
+      partner: 'Partnership Enquiry',
+      'campus-ambassador': 'Campus Ambassador Application',
+      empowerher: 'EmpowerHer Application',
+      'partner-africa': 'Partner Africa Application',
+      'stem-workshops': 'STEM Workshops Interest',
+      'chembridge-2026': 'ChemBridge 2026 Registration',
+    }
+    const orphanedApps = await db
+      .select()
+      .from(applications)
+      .where(
+        notExists(
+          db.select({ id: contacts.id }).from(contacts).where(eq(contacts.email, applications.email))
+        )
+      )
+    const seenEmails = new Set<string>()
+    let contactsBackfilled = 0
+    for (const app of orphanedApps) {
+      if (seenEmails.has(app.email)) continue
+      seenEmails.add(app.email)
+      await db.insert(contacts).values({
+        fullName: app.fullName,
+        email: app.email,
+        subject: formTypeToLabel[app.type] || app.type,
+        message: app.message || `Submitted via ${app.type}`,
+        status: 'new',
+      })
+      contactsBackfilled++
+    }
+    results.contactsBackfilled = contactsBackfilled
 
     return NextResponse.json({
       success: true,
