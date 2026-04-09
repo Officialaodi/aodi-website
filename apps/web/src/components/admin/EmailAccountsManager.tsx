@@ -11,7 +11,7 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select"
-import { Plus, RefreshCw, Trash2, Settings, CheckCircle, XCircle, Loader2, Mail } from "lucide-react"
+import { Plus, RefreshCw, Trash2, Settings, CheckCircle, XCircle, Loader2, Mail, AlertCircle } from "lucide-react"
 
 interface EmailAccount {
   id: number
@@ -27,6 +27,12 @@ interface EmailAccount {
   lastSyncAt: string | null
 }
 
+interface TestResult {
+  imap: { success: boolean; error?: string }
+  smtp: { success: boolean; error?: string }
+  overall: boolean
+}
+
 const providerDefaults: Record<string, { imapHost: string; imapPort: number; smtpHost: string; smtpPort: number }> = {
   gmail: { imapHost: "imap.gmail.com", imapPort: 993, smtpHost: "smtp.gmail.com", smtpPort: 587 },
   outlook: { imapHost: "outlook.office365.com", imapPort: 993, smtpHost: "smtp.office365.com", smtpPort: 587 },
@@ -40,7 +46,8 @@ export function EmailAccountsManager() {
   const [showForm, setShowForm] = useState(false)
   const [testing, setTesting] = useState<number | null>(null)
   const [syncing, setSyncing] = useState<number | null>(null)
-  const [testResults, setTestResults] = useState<Record<number, { imap: boolean; smtp: boolean }>>({})
+  const [testResults, setTestResults] = useState<Record<number, TestResult>>({})
+  const [syncMessage, setSyncMessage] = useState<Record<number, string>>({})
   const [error, setError] = useState("")
 
   const [formData, setFormData] = useState({
@@ -132,19 +139,38 @@ export function EmailAccountsManager() {
 
   const handleTest = async (id: number) => {
     setTesting(id)
+    // Clear previous result while testing
+    setTestResults(prev => {
+      const next = { ...prev }
+      delete next[id]
+      return next
+    })
     try {
       const response = await fetch(`/api/admin/email-accounts/${id}/test`, {
         method: "POST",
       })
+      const result = await response.json()
       if (response.ok) {
-        const result = await response.json()
-        setTestResults({
-          ...testResults,
-          [id]: { imap: result.imap.success, smtp: result.smtp.success }
-        })
+        setTestResults(prev => ({ ...prev, [id]: result }))
+      } else {
+        setTestResults(prev => ({
+          ...prev,
+          [id]: {
+            overall: false,
+            imap: { success: false, error: result.error || "Request failed" },
+            smtp: { success: false, error: result.error || "Request failed" },
+          }
+        }))
       }
     } catch (err) {
-      console.error("Error testing account:", err)
+      setTestResults(prev => ({
+        ...prev,
+        [id]: {
+          overall: false,
+          imap: { success: false, error: "Network error — could not reach server" },
+          smtp: { success: false, error: "Network error — could not reach server" },
+        }
+      }))
     } finally {
       setTesting(null)
     }
@@ -152,15 +178,20 @@ export function EmailAccountsManager() {
 
   const handleSync = async (id: number) => {
     setSyncing(id)
+    setSyncMessage(prev => ({ ...prev, [id]: "" }))
     try {
       const response = await fetch(`/api/admin/email-accounts/${id}/sync`, {
         method: "POST",
       })
+      const result = await response.json()
       if (response.ok) {
         fetchAccounts()
+        setSyncMessage(prev => ({ ...prev, [id]: `Synced successfully — ${result.synced ?? 0} new email(s)` }))
+      } else {
+        setSyncMessage(prev => ({ ...prev, [id]: result.error || "Sync failed" }))
       }
     } catch (err) {
-      console.error("Error syncing account:", err)
+      setSyncMessage(prev => ({ ...prev, [id]: "Sync failed — network error" }))
     } finally {
       setSyncing(null)
     }
@@ -334,97 +365,156 @@ export function EmailAccountsManager() {
         </Card>
       ) : (
         <div className="space-y-4">
-          {accounts.map((account) => (
-            <Card key={account.id}>
-              <CardContent className="py-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                      account.provider === "gmail" ? "bg-red-100" :
-                      account.provider === "outlook" ? "bg-blue-100" :
-                      "bg-gray-100"
-                    }`}>
-                      <Mail className={`w-5 h-5 ${
-                        account.provider === "gmail" ? "text-red-600" :
-                        account.provider === "outlook" ? "text-blue-600" :
-                        "text-gray-600"
-                      }`} />
+          {accounts.map((account) => {
+            const result = testResults[account.id]
+            const isTesting = testing === account.id
+            return (
+              <Card key={account.id}>
+                <CardContent className="py-4 space-y-3">
+                  {/* Account row */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                        account.provider === "gmail" ? "bg-red-100" :
+                        account.provider === "outlook" ? "bg-blue-100" :
+                        "bg-gray-100"
+                      }`}>
+                        <Mail className={`w-5 h-5 ${
+                          account.provider === "gmail" ? "text-red-600" :
+                          account.provider === "outlook" ? "text-blue-600" :
+                          "text-gray-600"
+                        }`} />
+                      </div>
+                      <div>
+                        <h4 className="font-medium">{account.name}</h4>
+                        <p className="text-sm text-gray-500">{account.email}</p>
+                        <p className="text-xs text-gray-400">
+                          Last synced: {formatDate(account.lastSyncAt)}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <h4 className="font-medium">{account.name}</h4>
-                      <p className="text-sm text-gray-500">{account.email}</p>
-                      <p className="text-xs text-gray-400">
-                        Last synced: {formatDate(account.lastSyncAt)}
-                      </p>
+
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleTest(account.id)}
+                        disabled={isTesting}
+                        data-testid={`button-test-${account.id}`}
+                      >
+                        {isTesting ? (
+                          <Loader2 className="w-4 h-4 animate-spin mr-1" />
+                        ) : (
+                          <Settings className="w-4 h-4 mr-1" />
+                        )}
+                        {isTesting ? "Testing…" : "Test"}
+                      </Button>
+
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleSync(account.id)}
+                        disabled={syncing === account.id}
+                        data-testid={`button-sync-${account.id}`}
+                      >
+                        {syncing === account.id ? (
+                          <Loader2 className="w-4 h-4 animate-spin mr-1" />
+                        ) : (
+                          <RefreshCw className="w-4 h-4 mr-1" />
+                        )}
+                        Sync
+                      </Button>
+
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDelete(account.id)}
+                        className="text-red-600"
+                        data-testid={`button-delete-${account.id}`}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
                     </div>
                   </div>
-                  
-                  <div className="flex items-center gap-2">
-                    {testResults[account.id] && (
-                      <div className="flex items-center gap-2 text-xs">
-                        <span className="flex items-center gap-1">
-                          {testResults[account.id].imap ? (
-                            <CheckCircle className="w-4 h-4 text-green-500" />
-                          ) : (
-                            <XCircle className="w-4 h-4 text-red-500" />
-                          )}
-                          IMAP
-                        </span>
-                        <span className="flex items-center gap-1">
-                          {testResults[account.id].smtp ? (
-                            <CheckCircle className="w-4 h-4 text-green-500" />
-                          ) : (
-                            <XCircle className="w-4 h-4 text-red-500" />
-                          )}
-                          SMTP
+
+                  {/* Test result panel */}
+                  {result && (
+                    <div className={`rounded-lg border p-3 text-sm ${
+                      result.overall
+                        ? "bg-green-50 border-green-200"
+                        : "bg-red-50 border-red-200"
+                    }`}>
+                      <div className="flex items-center gap-2 font-medium mb-2">
+                        {result.overall ? (
+                          <CheckCircle className="w-4 h-4 text-green-600" />
+                        ) : (
+                          <XCircle className="w-4 h-4 text-red-600" />
+                        )}
+                        <span className={result.overall ? "text-green-800" : "text-red-800"}>
+                          {result.overall
+                            ? "Connection test passed — both IMAP and SMTP are working."
+                            : "Connection test failed — see details below."}
                         </span>
                       </div>
-                    )}
-                    
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleTest(account.id)}
-                      disabled={testing === account.id}
-                      data-testid={`button-test-${account.id}`}
-                    >
-                      {testing === account.id ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <Settings className="w-4 h-4" />
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
+                        <div className={`flex items-start gap-2 rounded p-2 ${
+                          result.imap.success ? "bg-green-100" : "bg-red-100"
+                        }`}>
+                          {result.imap.success ? (
+                            <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 shrink-0" />
+                          ) : (
+                            <XCircle className="w-4 h-4 text-red-600 mt-0.5 shrink-0" />
+                          )}
+                          <div>
+                            <p className={`font-medium ${result.imap.success ? "text-green-800" : "text-red-800"}`}>
+                              IMAP (incoming mail)
+                            </p>
+                            {result.imap.success ? (
+                              <p className="text-green-700 text-xs">Connected successfully</p>
+                            ) : (
+                              <p className="text-red-700 text-xs">{result.imap.error || "Connection failed"}</p>
+                            )}
+                          </div>
+                        </div>
+                        <div className={`flex items-start gap-2 rounded p-2 ${
+                          result.smtp.success ? "bg-green-100" : "bg-red-100"
+                        }`}>
+                          {result.smtp.success ? (
+                            <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 shrink-0" />
+                          ) : (
+                            <XCircle className="w-4 h-4 text-red-600 mt-0.5 shrink-0" />
+                          )}
+                          <div>
+                            <p className={`font-medium ${result.smtp.success ? "text-green-800" : "text-red-800"}`}>
+                              SMTP (outgoing mail)
+                            </p>
+                            {result.smtp.success ? (
+                              <p className="text-green-700 text-xs">Connected successfully</p>
+                            ) : (
+                              <p className="text-red-700 text-xs">{result.smtp.error || "Connection failed"}</p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      {!result.overall && (
+                        <div className="mt-2 flex items-start gap-1 text-xs text-gray-600">
+                          <AlertCircle className="w-3 h-3 mt-0.5 shrink-0" />
+                          <span>Check that your IMAP/SMTP hosts, ports, username and password are correct. For cPanel, the host is usually your domain name (e.g. <em>mail.yourdomain.com</em>).</span>
+                        </div>
                       )}
-                      Test
-                    </Button>
-                    
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleSync(account.id)}
-                      disabled={syncing === account.id}
-                      data-testid={`button-sync-${account.id}`}
-                    >
-                      {syncing === account.id ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <RefreshCw className="w-4 h-4" />
-                      )}
-                      Sync
-                    </Button>
-                    
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleDelete(account.id)}
-                      className="text-red-600"
-                      data-testid={`button-delete-${account.id}`}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                    </div>
+                  )}
+
+                  {/* Sync feedback */}
+                  {syncMessage[account.id] && (
+                    <p className="text-xs text-gray-600 bg-gray-50 border rounded px-3 py-2">
+                      {syncMessage[account.id]}
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            )
+          })}
         </div>
       )}
     </div>
