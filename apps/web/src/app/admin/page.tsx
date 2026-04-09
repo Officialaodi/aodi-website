@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Users, UserCheck, GraduationCap, Handshake, LogOut, RefreshCw, Download, X, Plus, Trash2, Edit, Shield, BarChart3, BookOpen, Building2, Quote, FileText, BookMarked, Calendar, Heart, MessageCircle, Mail, CheckSquare, List, LayoutGrid, GripVertical, Inbox, Settings, Activity, Linkedin, Zap, AlertCircle, CheckCircle2, ExternalLink, Menu, PanelLeftClose, PanelLeft, Copy, Search, Filter, SlidersHorizontal } from "lucide-react"
+import { Users, UserCheck, GraduationCap, Handshake, LogOut, RefreshCw, Download, X, Plus, Trash2, Edit, Shield, BarChart3, BookOpen, Building2, Quote, FileText, BookMarked, Calendar, Heart, MessageCircle, Mail, CheckSquare, List, LayoutGrid, GripVertical, Inbox, Settings, Activity, Linkedin, Zap, AlertCircle, CheckCircle2, ExternalLink, Menu, PanelLeftClose, PanelLeft, Copy, Search, Filter, SlidersHorizontal, ChevronDown, ChevronUp, Clock } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { ApplicationCRMPanel } from "@/components/admin/ApplicationCRMPanel"
@@ -366,6 +366,9 @@ export default function AdminDashboardPage() {
   const [contactsLoading, setContactsLoading] = useState(false)
   const [contactsSearch, setContactsSearch] = useState("")
   const [contactsStatusFilter, setContactsStatusFilter] = useState("all")
+  const [expandedContactId, setExpandedContactId] = useState<number | null>(null)
+  const [contactHistory, setContactHistory] = useState<Record<number, Application[]>>({})
+  const [contactHistoryLoading, setContactHistoryLoading] = useState<number | null>(null)
   const [donorEmailOpen, setDonorEmailOpen] = useState(false)
   const [donorEmailTarget, setDonorEmailTarget] = useState<{ email: string; name: string } | null>(null)
   
@@ -632,6 +635,26 @@ export default function AdminDashboardPage() {
       console.error("Error fetching contacts:", error)
     } finally {
       setContactsLoading(false)
+    }
+  }
+
+  const fetchContactHistory = async (contactId: number) => {
+    if (contactHistory[contactId]) {
+      setExpandedContactId(prev => prev === contactId ? null : contactId)
+      return
+    }
+    setContactHistoryLoading(contactId)
+    setExpandedContactId(contactId)
+    try {
+      const res = await fetch(`/api/admin/contacts/${contactId}/history`)
+      if (res.ok) {
+        const data = await res.json()
+        setContactHistory(prev => ({ ...prev, [contactId]: data.submissions || [] }))
+      }
+    } catch (err) {
+      console.error("Error fetching contact history:", err)
+    } finally {
+      setContactHistoryLoading(null)
     }
   }
 
@@ -2954,51 +2977,125 @@ export default function AdminDashboardPage() {
                         const matchesStatus = contactsStatusFilter === "all" || c.status === contactsStatusFilter
                         return matchesSearch && matchesStatus
                       })
-                      .map((contact) => (
-                      <div
-                        key={contact.id}
-                        className="border rounded-lg p-4 hover:bg-gray-50"
-                        data-testid={`contact-${contact.id}`}
-                      >
-                        <div className="flex flex-wrap items-start justify-between gap-2 mb-2">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm text-gray-500">{formatDate(contact.createdAt)}</span>
+                      .map((contact) => {
+                        const isExpanded = expandedContactId === contact.id
+                        const history = contactHistory[contact.id]
+                        const isLoadingHistory = contactHistoryLoading === contact.id
+                        return (
+                          <div
+                            key={contact.id}
+                            className="border rounded-lg overflow-hidden"
+                            data-testid={`contact-${contact.id}`}
+                          >
+                            <div className="p-4 hover:bg-gray-50">
+                              <div className="flex flex-wrap items-start justify-between gap-2 mb-2">
+                                <span className="text-sm text-gray-500">{formatDate(contact.createdAt)}</span>
+                                <div className="flex items-center gap-2">
+                                  <Select value={contact.status} onValueChange={(value) => handleContactStatusChange(contact.id, value)}>
+                                    <SelectTrigger className="w-32" data-testid={`select-contact-status-${contact.id}`}>
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="new">New</SelectItem>
+                                      <SelectItem value="replied">Replied</SelectItem>
+                                      <SelectItem value="resolved">Resolved</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                              </div>
+                              <div className="flex items-center justify-between gap-2">
+                                <div>
+                                  <h3 className="font-semibold text-[#1F2933]">{contact.fullName}</h3>
+                                  <p className="text-sm text-gray-600">{contact.email}</p>
+                                </div>
+                                <div className="flex items-center gap-2 flex-shrink-0">
+                                  {contact.email && (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="text-green-800 border-green-200 hover:bg-green-50"
+                                      onClick={() => { setContactReplyTarget({ email: contact.email, name: contact.fullName }); setContactReplyOpen(true) }}
+                                      data-testid={`button-reply-contact-${contact.id}`}
+                                    >
+                                      <Mail className="w-3 h-3 mr-1" />
+                                      Reply
+                                    </Button>
+                                  )}
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="text-gray-600 hover:bg-gray-100"
+                                    onClick={() => fetchContactHistory(contact.id)}
+                                    data-testid={`button-history-contact-${contact.id}`}
+                                  >
+                                    {isLoadingHistory ? (
+                                      <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
+                                    ) : isExpanded ? (
+                                      <ChevronUp className="w-3 h-3 mr-1" />
+                                    ) : (
+                                      <ChevronDown className="w-3 h-3 mr-1" />
+                                    )}
+                                    Submissions
+                                  </Button>
+                                </div>
+                              </div>
+                              {contact.subject && (
+                                <p className="text-sm font-medium mt-2">Subject: {contact.subject}</p>
+                              )}
+                              <p className="mt-2 text-sm text-gray-700">{contact.message}</p>
+                            </div>
+
+                            {isExpanded && (
+                              <div className="border-t bg-gray-50 px-4 py-3">
+                                <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3 flex items-center gap-1">
+                                  <Clock className="w-3 h-3" />
+                                  Submission History
+                                </h4>
+                                {isLoadingHistory ? (
+                                  <p className="text-sm text-gray-500 py-2">Loading history...</p>
+                                ) : !history || history.length === 0 ? (
+                                  <p className="text-sm text-gray-500 py-2">No form submissions on record for this email.</p>
+                                ) : (
+                                  <div className="space-y-2">
+                                    {history.map((sub) => {
+                                      let payload: Record<string, unknown> = {}
+                                      try { payload = sub.payload ? JSON.parse(sub.payload as string) : {} } catch { /* ignore */ }
+                                      const SKIP = new Set(["formId", "formName", "submittedAt", "captchaToken", "agreedToPolicy"])
+                                      const fields = Object.entries(payload).filter(([k]) => !SKIP.has(k)).slice(0, 4)
+                                      return (
+                                        <div key={sub.id} className="bg-white border rounded-md p-3 text-sm">
+                                          <div className="flex items-center justify-between gap-2 mb-1">
+                                            <span className="font-medium text-[#0F3D2E] capitalize">{sub.type.replace(/-/g, " ")}</span>
+                                            <span className="text-xs text-gray-400">{formatDate(sub.createdAt)}</span>
+                                          </div>
+                                          {fields.length > 0 && (
+                                            <div className="text-gray-600 space-y-0.5">
+                                              {fields.map(([k, v]) => (
+                                                <div key={k} className="flex gap-1 text-xs">
+                                                  <span className="text-gray-400 capitalize">{k.replace(/_/g, " ").replace(/([a-z])([A-Z])/g, "$1 $2")}:</span>
+                                                  <span className="truncate max-w-[240px]">{String(v)}</span>
+                                                </div>
+                                              ))}
+                                            </div>
+                                          )}
+                                          <div className="mt-1.5">
+                                            <span className={`inline-block text-xs px-1.5 py-0.5 rounded-full font-medium ${
+                                              sub.status === "new" ? "bg-blue-100 text-blue-700" :
+                                              sub.status === "approved" ? "bg-green-100 text-green-700" :
+                                              sub.status === "rejected" ? "bg-red-100 text-red-700" :
+                                              "bg-gray-100 text-gray-600"
+                                            }`}>{sub.status}</span>
+                                          </div>
+                                        </div>
+                                      )
+                                    })}
+                                  </div>
+                                )}
+                              </div>
+                            )}
                           </div>
-                          <Select value={contact.status} onValueChange={(value) => handleContactStatusChange(contact.id, value)}>
-                            <SelectTrigger className="w-32" data-testid={`select-contact-status-${contact.id}`}>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="new">New</SelectItem>
-                              <SelectItem value="replied">Replied</SelectItem>
-                              <SelectItem value="resolved">Resolved</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="flex items-center justify-between gap-2">
-                          <div>
-                            <h3 className="font-semibold text-[#1F2933]">{contact.fullName}</h3>
-                            <p className="text-sm text-gray-600">{contact.email}</p>
-                          </div>
-                          {contact.email && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="text-green-800 border-green-200 hover:bg-green-50 flex-shrink-0"
-                              onClick={() => { setContactReplyTarget({ email: contact.email, name: contact.fullName }); setContactReplyOpen(true) }}
-                              data-testid={`button-reply-contact-${contact.id}`}
-                            >
-                              <Mail className="w-3 h-3 mr-1" />
-                              Reply
-                            </Button>
-                          )}
-                        </div>
-                        {contact.subject && (
-                          <p className="text-sm font-medium mt-2">Subject: {contact.subject}</p>
-                        )}
-                        <p className="mt-2 text-sm text-gray-700">{contact.message}</p>
-                      </div>
-                    ))}
+                        )
+                      })}
                   </div>
                 )}
               </CardContent>

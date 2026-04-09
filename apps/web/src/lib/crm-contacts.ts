@@ -1,6 +1,6 @@
 import { db } from './db'
 import { contacts } from './schema'
-import { eq } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 
 const formTypeLabels: Record<string, string> = {
   mentor: 'Mentor Application',
@@ -15,13 +15,14 @@ const formTypeLabels: Record<string, string> = {
   contact: 'Contact Form',
 }
 
-const MESSAGE_FORM_TYPES = new Set(['contact'])
-
 /**
- * Creates a CRM contact from any form submission.
- * - Message-type forms (contact): always insert — every message is a new entry.
- * - Application forms: skips if a contact with the same email already exists
- *   to prevent duplicate applicant records.
+ * Upserts a CRM contact by email.
+ * - If the email already exists: updates the name and timestamp — never creates a duplicate.
+ * - If the email is new: creates a fresh contact record.
+ *
+ * All form submissions are stored in the `applications` table and can be retrieved
+ * by email to build a full submission history for any contact.
+ *
  * Silently ignores errors so it never breaks the main submission flow.
  */
 export async function upsertCrmContact(params: {
@@ -34,6 +35,7 @@ export async function upsertCrmContact(params: {
   try {
     const normalizedEmail = params.email.toLowerCase().trim()
     const label = formTypeLabels[params.formType] || params.formType
+
     const summary = params.payload
       ? Object.entries(params.payload)
           .filter(([k]) => !['captchaToken', 'agreedToPolicy', 'formId', 'formName', 'submittedAt'].includes(k))
@@ -42,17 +44,22 @@ export async function upsertCrmContact(params: {
           .join(', ')
       : `Submitted via ${label}`
 
-    if (!MESSAGE_FORM_TYPES.has(params.formType)) {
-      const existing = await db
-        .select({ id: contacts.id })
-        .from(contacts)
-        .where(eq(contacts.email, normalizedEmail))
-        .limit(1)
+    const existing = await db
+      .select({ id: contacts.id })
+      .from(contacts)
+      .where(eq(contacts.email, normalizedEmail))
+      .limit(1)
 
-      if (existing.length > 0) {
-        console.log(`[CRM] Contact already exists for ${normalizedEmail}, skipping duplicate applicant record.`)
-        return
-      }
+    if (existing.length > 0) {
+      await db
+        .update(contacts)
+        .set({
+          fullName: params.fullName,
+          updatedAt: sql`now()`,
+        })
+        .where(eq(contacts.email, normalizedEmail))
+      console.log(`[CRM] Updated existing contact for ${normalizedEmail}`)
+      return
     }
 
     await db.insert(contacts).values({
@@ -63,7 +70,8 @@ export async function upsertCrmContact(params: {
       status: 'new',
       payload: params.payload ? JSON.stringify(params.payload) : null,
     })
+    console.log(`[CRM] Created new contact for ${normalizedEmail}`)
   } catch (err) {
-    console.error('[CRM] Failed to create contact from submission:', err)
+    console.error('[CRM] Failed to upsert contact from submission:', err)
   }
 }
