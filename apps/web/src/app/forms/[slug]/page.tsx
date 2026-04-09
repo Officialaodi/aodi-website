@@ -24,6 +24,49 @@ import { PolicyConsent } from "@/components/forms/PolicyConsent"
 
 export const dynamic = 'force-dynamic'
 
+const formHeadings: Record<string, { title: string; subtitle: string }> = {
+  contact: {
+    title: "Send Us a Message",
+    subtitle: "Fill in the fields below and our team will get back to you.",
+  },
+  mentor: {
+    title: "Mentor Application",
+    subtitle: "Please complete all required fields below to submit your mentor application.",
+  },
+  mentee: {
+    title: "Mentee Application",
+    subtitle: "Please complete all required fields below to submit your mentee application.",
+  },
+  volunteer: {
+    title: "Volunteer Application",
+    subtitle: "Please complete all required fields below to submit your volunteer application.",
+  },
+  partner: {
+    title: "Partnership Enquiry",
+    subtitle: "Tell us about your organisation and how you'd like to partner with AODI.",
+  },
+  empowerher: {
+    title: "EmpowerHer Application",
+    subtitle: "Please complete all required fields below to submit your application.",
+  },
+  "campus-ambassador": {
+    title: "Campus Ambassador Application",
+    subtitle: "Please complete all required fields below to submit your application.",
+  },
+  "stem-workshops": {
+    title: "STEM Workshop Interest",
+    subtitle: "Register your interest and we'll be in touch with upcoming details.",
+  },
+  "partner-africa": {
+    title: "Partner Africa Application",
+    subtitle: "Please complete all required fields below to submit your application.",
+  },
+  "chembridge-2026": {
+    title: "Complete Your Registration",
+    subtitle: "Please complete all required fields below to register for ChemBridge 2026.",
+  },
+}
+
 interface FormField {
   id: number
   fieldKey: string
@@ -594,13 +637,14 @@ export default function DynamicFormPage() {
         <Card className="shadow-xl relative z-10">
           <CardHeader className="border-b bg-gray-50/50 px-6 py-5">
             <CardTitle className="text-2xl text-[#0F3D2E]">
-              {hasEventHero ? "Registration Form" : "Complete Your Application"}
+              {hasEventHero
+                ? "Registration Form"
+                : (formHeadings[slug]?.title ?? "Complete Your Application")}
             </CardTitle>
             <CardDescription className="text-base mt-1">
-              {hasEventHero 
+              {hasEventHero
                 ? form.description || "Please complete all required fields below."
-                : "Please complete all required fields below to submit your application."
-              }
+                : (formHeadings[slug]?.subtitle ?? "Please complete all required fields below.")}
             </CardDescription>
           </CardHeader>
 
