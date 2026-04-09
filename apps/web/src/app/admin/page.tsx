@@ -845,25 +845,62 @@ export default function AdminDashboardPage() {
   }
 
   const exportCSV = () => {
-    const headers = ["ID", "Type", "Full Name", "Email", "Organization", "Status", "Created At", "Message"]
     const dataToExport = filter === "all" && statusFilter === "all" ? allApplications : filteredApplications
-    const csvData = dataToExport.map(app => [
-      app.id,
-      app.type,
-      app.fullName,
-      app.email,
-      app.organization || "",
-      app.status,
-      new Date(app.createdAt).toISOString(),
-      app.message?.replace(/"/g, '""') || ""
-    ])
-    
+
+    const SYSTEM_KEYS = new Set(["formId", "formName", "submittedAt", "captchaToken", "agreedToPolicy"])
+
+    const payloadMaps: Record<string, unknown>[] = dataToExport.map(app => {
+      if (!app.payload) return {}
+      try {
+        const parsed = JSON.parse(app.payload as string)
+        const clean: Record<string, unknown> = {}
+        Object.entries(parsed).forEach(([k, v]) => {
+          if (!SYSTEM_KEYS.has(k)) clean[k] = v
+        })
+        return clean
+      } catch { return {} }
+    })
+
+    const payloadKeys = Array.from(
+      payloadMaps.reduce((set, obj) => {
+        Object.keys(obj).forEach(k => set.add(k))
+        return set
+      }, new Set<string>())
+    )
+
+    const baseHeaders = ["ID", "Type", "Full Name", "Email", "Organization", "Status", "Submitted At"]
+    const payloadHeaders = payloadKeys.map(k =>
+      k.replace(/_/g, " ").replace(/([a-z])([A-Z])/g, "$1 $2")
+        .split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")
+    )
+    const headers = [...baseHeaders, ...payloadHeaders]
+
+    const escapeCell = (val: unknown): string => {
+      const str = val == null ? "" : String(val)
+      return str.replace(/"/g, '""')
+    }
+
+    const csvData = dataToExport.map((app, i) => {
+      const payload = payloadMaps[i]
+      const baseRow = [
+        app.id,
+        app.type,
+        app.fullName,
+        app.email,
+        app.organization || "",
+        app.status,
+        new Date(app.createdAt).toISOString(),
+      ]
+      const payloadRow = payloadKeys.map(k => escapeCell(payload[k]))
+      return [...baseRow.map(escapeCell), ...payloadRow]
+    })
+
     const csvContent = [
-      headers.join(","),
+      headers.map(h => `"${h}"`).join(","),
       ...csvData.map(row => row.map(cell => `"${cell}"`).join(","))
     ].join("\n")
-    
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
+
+    const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" })
     const link = document.createElement("a")
     link.href = URL.createObjectURL(blob)
     link.download = `aodi-applications-${new Date().toISOString().split("T")[0]}.csv`

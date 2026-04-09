@@ -24,6 +24,19 @@ import { PolicyConsent } from "@/components/forms/PolicyConsent"
 
 export const dynamic = 'force-dynamic'
 
+const successTitles: Record<string, string> = {
+  contact: "Message Sent!",
+  mentor: "Application Submitted!",
+  mentee: "Application Submitted!",
+  volunteer: "Application Submitted!",
+  partner: "Enquiry Received!",
+  empowerher: "Application Submitted!",
+  "campus-ambassador": "Application Submitted!",
+  "stem-workshops": "Interest Registered!",
+  "partner-africa": "Application Submitted!",
+  "chembridge-2026": "Registration Complete!",
+}
+
 const formHeadings: Record<string, { title: string; subtitle: string }> = {
   contact: {
     title: "Send Us a Message",
@@ -532,7 +545,7 @@ export default function DynamicFormPage() {
           <Card className="shadow-lg overflow-hidden">
             <div className="bg-gradient-to-r from-[#0F3D2E] to-[#1a5c44] p-8 text-center">
               <CheckCircle className="w-20 h-20 text-white mx-auto mb-4" />
-              <h2 className="text-3xl font-bold text-white mb-2">Registration Complete!</h2>
+              <h2 className="text-3xl font-bold text-white mb-2">{successTitles[slug] ?? "Submission Received!"}</h2>
             </div>
             <CardContent className="pt-8 text-center">
               <p className="text-gray-600 text-lg mb-6">

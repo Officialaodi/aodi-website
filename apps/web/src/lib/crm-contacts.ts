@@ -15,9 +15,13 @@ const formTypeLabels: Record<string, string> = {
   contact: 'Contact Form',
 }
 
+const MESSAGE_FORM_TYPES = new Set(['contact'])
+
 /**
  * Creates a CRM contact from any form submission.
- * Skips if a contact with the same email already exists (prevents duplicates).
+ * - Message-type forms (contact): always insert — every message is a new entry.
+ * - Application forms: skips if a contact with the same email already exists
+ *   to prevent duplicate applicant records.
  * Silently ignores errors so it never breaks the main submission flow.
  */
 export async function upsertCrmContact(params: {
@@ -28,16 +32,7 @@ export async function upsertCrmContact(params: {
   applicationId?: number
 }): Promise<void> {
   try {
-    const existing = await db
-      .select({ id: contacts.id })
-      .from(contacts)
-      .where(eq(contacts.email, params.email.toLowerCase().trim()))
-      .limit(1)
-
-    if (existing.length > 0) {
-      return
-    }
-
+    const normalizedEmail = params.email.toLowerCase().trim()
     const label = formTypeLabels[params.formType] || params.formType
     const summary = params.payload
       ? Object.entries(params.payload)
@@ -47,9 +42,22 @@ export async function upsertCrmContact(params: {
           .join(', ')
       : `Submitted via ${label}`
 
+    if (!MESSAGE_FORM_TYPES.has(params.formType)) {
+      const existing = await db
+        .select({ id: contacts.id })
+        .from(contacts)
+        .where(eq(contacts.email, normalizedEmail))
+        .limit(1)
+
+      if (existing.length > 0) {
+        console.log(`[CRM] Contact already exists for ${normalizedEmail}, skipping duplicate applicant record.`)
+        return
+      }
+    }
+
     await db.insert(contacts).values({
       fullName: params.fullName,
-      email: params.email.toLowerCase().trim(),
+      email: normalizedEmail,
       subject: label,
       message: summary || `Submitted via ${label}`,
       status: 'new',
