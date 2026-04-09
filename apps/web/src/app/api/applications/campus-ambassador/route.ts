@@ -3,6 +3,7 @@ import { db } from '@/lib/db'
 import { applications } from '@/lib/schema'
 import { checkRateLimit, getClientIdentifier } from '@/lib/rate-limit'
 import { sendAdminNotification, sendApplicationAcknowledgement } from '@/lib/brevo'
+import { upsertCrmContact } from '@/lib/crm-contacts'
 import { verifyCaptcha } from '@/lib/captcha'
 
 export const dynamic = 'force-dynamic'
@@ -52,6 +53,9 @@ export async function POST(request: NextRequest) {
       payload: data,
       applicationId: result[0].id,
     }).catch(err => console.error('[Brevo] Admin notification failed:', err))
+
+    upsertCrmContact({ fullName: data.fullName, email: data.email, formType: 'campus-ambassador', applicationId: result[0].id })
+      .catch(err => console.error('[CRM] Contact upsert failed:', err))
 
     sendApplicationAcknowledgement('campus-ambassador', data.email, data.fullName, result[0].id)
       .catch(err => console.error('[Brevo] Acknowledgement email failed:', err))

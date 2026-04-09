@@ -3,6 +3,7 @@ import { db } from "@/lib/db"
 import { applications } from "@/lib/schema"
 import { z } from "zod"
 import { trackConversion } from "@/lib/track-conversion"
+import { upsertCrmContact } from "@/lib/crm-contacts"
 
 export const dynamic = 'force-dynamic'
 
@@ -112,6 +113,9 @@ export async function POST(request: NextRequest) {
     } catch (analyticsError) {
       console.error("Failed to track analytics:", analyticsError)
     }
+
+    upsertCrmContact({ fullName, email: data.email, formType: 'chembridge-2026', applicationId: result[0].id })
+      .catch(err => console.error('[CRM] Contact upsert failed:', err))
 
     const { sendApplicationAcknowledgement, sendAdminNotification } = await import('@/lib/brevo')
 

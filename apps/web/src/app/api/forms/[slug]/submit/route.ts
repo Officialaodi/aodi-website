@@ -5,6 +5,7 @@ import { eq, asc } from "drizzle-orm"
 import { z } from "zod"
 import { verifyCaptcha } from "@/lib/captcha"
 import { sendApplicationAcknowledgement, sendAdminNotification } from "@/lib/brevo"
+import { upsertCrmContact } from "@/lib/crm-contacts"
 
 export const dynamic = 'force-dynamic'
 
@@ -127,6 +128,14 @@ export async function POST(
       status: "new",
     }).returning()
     
+    upsertCrmContact({
+      fullName,
+      email,
+      formType: form.slug,
+      payload: { formId: form.id, formName: form.name, ...formData },
+      applicationId: newApplication[0].id,
+    }).catch(err => console.error('[CRM] Contact upsert failed:', err))
+
     sendApplicationAcknowledgement(form.slug, email, fullName, newApplication[0].id)
       .catch(err => console.error('[Brevo] Form acknowledgement failed:', err))
 
