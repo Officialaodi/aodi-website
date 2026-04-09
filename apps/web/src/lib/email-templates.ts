@@ -60,20 +60,24 @@ export interface SystemTemplate {
   body: string
   category: string
   variables: string[]
+  description?: string
 }
 
-export const SYSTEM_TEMPLATES: SystemTemplate[] = [
+// ─── Transactional Templates ──────────────────────────────────────────────────
+// These are automatically sent by the platform. Edit them in Admin → Email Templates → Transactional.
+
+export const TRANSACTIONAL_TEMPLATES: SystemTemplate[] = [
   {
     name: 'Password Reset',
     slug: 'password-reset',
-    category: 'system',
+    category: 'transactional',
+    description: 'Sent when an admin requests a password reset.',
     subject: 'Reset your AODI admin password',
-    variables: ['name', 'resetUrl'],
-    body: `Hi {{name}},
+    variables: ['name', 'firstName', 'resetUrl'],
+    body: `Hi {{firstName}},
 
-We received a request to reset the password for your AODI admin account.
+We received a request to reset the password for your AODI admin account. Click the link below to set a new password:
 
-Click the link below to set a new password:
 {{resetUrl}}
 
 This link expires in 1 hour. If you did not request a password reset, you can safely ignore this email.
@@ -83,54 +87,41 @@ For security, this link can only be used once.
 — AODI Team`,
   },
   {
-    name: 'Application Received (Generic)',
-    slug: 'application-received',
-    category: 'application',
-    subject: 'Your {{applicationType}} has been received — AODI',
-    variables: ['name', 'firstName', 'applicationType', 'nextSteps', 'websiteUrl', 'contactEmail'],
+    name: 'Mentor Application — Acknowledgement',
+    slug: 'ack-mentor',
+    category: 'transactional',
+    description: 'Sent automatically to every mentor applicant after they submit.',
+    subject: 'Your Mentor Application has been received — AODI',
+    variables: ['name', 'firstName', 'websiteUrl', 'contactEmail'],
     body: `Dear {{firstName}},
 
-Thank you for submitting your {{applicationType}}.
+Thank you for your interest in becoming an AODI mentor! We are excited to have you join our growing network of change-makers dedicated to empowering young African talent.
 
-We have successfully received your application and our team will be in touch with you shortly.
-
-{{nextSteps}}
-
-In the meantime, feel free to explore our programmes and initiatives at {{websiteUrl}}.
-
-If you have any urgent questions, please contact us at {{contactEmail}}.
-
-Warm regards,
-The AODI Team`,
-  },
-  {
-    name: 'Mentor Application Confirmation',
-    slug: 'application-mentor',
-    category: 'application',
-    subject: 'Thank you for applying to mentor with AODI',
-    variables: ['name', 'firstName', 'contactEmail'],
-    body: `Dear {{firstName}},
-
-Thank you for your interest in becoming an AODI mentor. We are excited to have you join our growing network of change-makers dedicated to empowering young African talent.
+We have received your Mentor Application and wanted to confirm it has been successfully submitted.
 
 Our team will review your application and reach out within 5–7 business days to discuss the next steps.
 
-If you have any questions in the meantime, please don't hesitate to contact us at {{contactEmail}}.
+In the meantime, feel free to explore our website to learn more about our programmes and impact: {{websiteUrl}}
+
+If you have any urgent questions, please contact us at {{contactEmail}}.
 
 With gratitude,
 The AODI Mentorship Team`,
   },
   {
-    name: 'Mentee Application Confirmation',
-    slug: 'application-mentee',
-    category: 'application',
-    subject: 'Your AODI mentee application has been received',
-    variables: ['name', 'firstName', 'contactEmail'],
+    name: 'Mentee Application — Acknowledgement',
+    slug: 'ack-mentee',
+    category: 'transactional',
+    description: 'Sent automatically to every mentee applicant after they submit.',
+    subject: 'Your Mentee Application has been received — AODI',
+    variables: ['name', 'firstName', 'websiteUrl', 'contactEmail'],
     body: `Dear {{firstName}},
 
-Congratulations on taking this important step! We have received your AODI mentee application and are delighted by your interest in our mentorship programme.
+Congratulations on taking this important step! We have received your AODI Mentee Application and are delighted by your interest in our mentorship programme.
 
 Our matching team will review your profile and contact you within 7–10 business days with mentor match options.
+
+In the meantime, feel free to explore our website: {{websiteUrl}}
 
 If you have any questions, please contact us at {{contactEmail}}.
 
@@ -138,16 +129,21 @@ Best wishes,
 The AODI Mentorship Team`,
   },
   {
-    name: 'Volunteer Application Confirmation',
-    slug: 'application-volunteer',
-    category: 'application',
-    subject: 'Thank you for volunteering with AODI',
-    variables: ['name', 'firstName', 'contactEmail'],
+    name: 'Volunteer Application — Acknowledgement',
+    slug: 'ack-volunteer',
+    category: 'transactional',
+    description: 'Sent automatically to every volunteer applicant after they submit.',
+    subject: 'Your Volunteer Application has been received — AODI',
+    variables: ['name', 'firstName', 'websiteUrl', 'contactEmail'],
     body: `Dear {{firstName}},
 
 Thank you for your willingness to volunteer with AODI! Your time and dedication make our mission possible.
 
+We have received your Volunteer Application and wanted to confirm it has been successfully submitted.
+
 Our volunteer coordinator will be in touch within 5 business days to discuss available opportunities that match your skills and interests.
+
+In the meantime, feel free to explore our website: {{websiteUrl}}
 
 Questions? Email us at {{contactEmail}}.
 
@@ -155,9 +151,162 @@ With appreciation,
 The AODI Volunteer Team`,
   },
   {
-    name: 'Admin Notification — New Application',
+    name: 'Partner Enquiry — Acknowledgement',
+    slug: 'ack-partner',
+    category: 'transactional',
+    description: 'Sent automatically to every partnership enquiry after submission.',
+    subject: 'Your Partnership Enquiry has been received — AODI',
+    variables: ['name', 'firstName', 'websiteUrl', 'contactEmail'],
+    body: `Dear {{firstName}},
+
+Thank you for your interest in partnering with AODI. We are thrilled to explore how we can work together to advance education and leadership development across Africa.
+
+We have received your Partnership Enquiry and wanted to confirm it has been successfully submitted.
+
+Our partnerships team will review your enquiry and contact you within 3–5 business days.
+
+In the meantime, feel free to explore our programmes and impact: {{websiteUrl}}
+
+If you have any urgent questions, please contact us at {{contactEmail}}.
+
+Warm regards,
+The AODI Partnerships Team`,
+  },
+  {
+    name: 'Campus Ambassador Application — Acknowledgement',
+    slug: 'ack-campus-ambassador',
+    category: 'transactional',
+    description: 'Sent automatically to every Campus Ambassador applicant after they submit.',
+    subject: 'Your Campus Ambassador Application has been received — AODI',
+    variables: ['name', 'firstName', 'websiteUrl', 'contactEmail'],
+    body: `Dear {{firstName}},
+
+Thank you for applying to become an AODI Campus Ambassador! Your enthusiasm for our mission means a great deal to us.
+
+We have received your Campus Ambassador Application and wanted to confirm it has been successfully submitted.
+
+Our campus engagement team will review your application and respond within 5–7 business days.
+
+In the meantime, explore what we do at {{websiteUrl}}.
+
+Questions? Email us at {{contactEmail}}.
+
+Warm regards,
+The AODI Campus Engagement Team`,
+  },
+  {
+    name: 'EmpowerHer Application — Acknowledgement',
+    slug: 'ack-empowerher',
+    category: 'transactional',
+    description: 'Sent automatically to every EmpowerHer applicant after they submit.',
+    subject: 'Your EmpowerHer Application has been received — AODI',
+    variables: ['name', 'firstName', 'websiteUrl', 'contactEmail'],
+    body: `Dear {{firstName}},
+
+Thank you for applying to the AODI EmpowerHer Programme! We are inspired by your ambition and commitment to leadership.
+
+We have received your EmpowerHer Application and wanted to confirm it has been successfully submitted.
+
+Our EmpowerHer programme coordinator will review your application and be in touch within 7 business days.
+
+In the meantime, learn more about our work at {{websiteUrl}}.
+
+If you have any questions, please reach out to us at {{contactEmail}}.
+
+With encouragement,
+The AODI EmpowerHer Team`,
+  },
+  {
+    name: 'Partner Africa Application — Acknowledgement',
+    slug: 'ack-partner-africa',
+    category: 'transactional',
+    description: 'Sent automatically to every Partner Africa applicant after they submit.',
+    subject: 'Your Partner Africa Application has been received — AODI',
+    variables: ['name', 'firstName', 'websiteUrl', 'contactEmail'],
+    body: `Dear {{firstName}},
+
+Thank you for your interest in the AODI Partner Africa initiative. We are excited about the possibility of working with you to create meaningful impact across the continent.
+
+We have received your Partner Africa Application and wanted to confirm it has been successfully submitted.
+
+Our Africa partnerships team will review your application and be in touch within 5–7 business days.
+
+In the meantime, explore our programmes at {{websiteUrl}}.
+
+If you have any urgent questions, contact us at {{contactEmail}}.
+
+Warm regards,
+The AODI Africa Partnerships Team`,
+  },
+  {
+    name: 'STEM Workshops — Interest Confirmation',
+    slug: 'ack-stem-workshops',
+    category: 'transactional',
+    description: 'Sent automatically to every STEM Workshops applicant after they submit.',
+    subject: 'Your STEM Workshop Interest has been received — AODI',
+    variables: ['name', 'firstName', 'websiteUrl', 'contactEmail'],
+    body: `Dear {{firstName}},
+
+Thank you for your interest in AODI STEM Workshops! We are excited to connect you with transformative STEM learning experiences.
+
+We have received your application and wanted to confirm it has been successfully submitted.
+
+Our STEM team will note your interest and reach out with upcoming workshop details.
+
+In the meantime, explore our programmes at {{websiteUrl}}.
+
+Questions? Email us at {{contactEmail}}.
+
+With excitement,
+The AODI STEM Team`,
+  },
+  {
+    name: 'ChemBridge 2026 — Registration Confirmation',
+    slug: 'ack-chembridge-2026',
+    category: 'transactional',
+    description: 'Sent automatically to every ChemBridge 2026 registrant after they submit.',
+    subject: 'Your ChemBridge 2026 Registration is confirmed — AODI',
+    variables: ['name', 'firstName', 'websiteUrl', 'contactEmail'],
+    body: `Dear {{firstName}},
+
+Thank you for registering for the ChemBridge Inclusion Accelerator 2026! We are thrilled to have you join us for this exciting programme.
+
+We have received your registration and wanted to confirm it has been successfully submitted.
+
+Your registration for ChemBridge Inclusion Accelerator 2026 has been confirmed. Further details will be sent closer to the event.
+
+In the meantime, feel free to explore our website to learn more about our programmes and impact: {{websiteUrl}}
+
+If you have any urgent questions, please contact us at {{contactEmail}}.
+
+With great excitement,
+The AODI ChemBridge Team`,
+  },
+  {
+    name: 'Contact Form — Auto-Reply',
+    slug: 'ack-contact',
+    category: 'transactional',
+    description: 'Sent automatically to everyone who submits the contact form.',
+    subject: "We've received your message — AODI",
+    variables: ['name', 'firstName', 'websiteUrl', 'contactEmail'],
+    body: `Dear {{firstName}},
+
+Thank you for reaching out to AODI. We have received your message and wanted to confirm it has been successfully submitted.
+
+Our team will review your message and respond within 2–3 business days.
+
+If your enquiry is urgent, please contact us directly at {{contactEmail}}.
+
+In the meantime, explore what we do at {{websiteUrl}}.
+
+Warm regards,
+The AODI Team`,
+  },
+  {
+    name: 'Admin — New Submission Notification',
     slug: 'admin-notification',
-    category: 'notification',
+    category: 'transactional',
+    description: 'Sent to the admin email address whenever a new form is submitted.',
     subject: 'New {{applicationType}}: {{name}}',
     variables: ['name', 'email', 'applicationType', 'date', 'adminDashboardUrl'],
     body: `A new {{applicationType}} has been received.
@@ -166,15 +315,22 @@ Applicant: {{name}}
 Email: {{email}}
 Date: {{date}}
 
-Log in to the admin dashboard to review this application:
+Log in to the admin dashboard to review this submission:
 {{adminDashboardUrl}}
 
-— AODI System Notification`,
+— AODI System`,
   },
+]
+
+// ─── Marketing / Other Templates ──────────────────────────────────────────────
+
+export const SYSTEM_TEMPLATES: SystemTemplate[] = [
+  ...TRANSACTIONAL_TEMPLATES,
   {
     name: 'Newsletter Base',
     slug: 'newsletter',
     category: 'newsletter',
+    description: 'Base template for newsletter campaigns.',
     subject: 'AODI Newsletter — {{date}}',
     variables: ['name', 'firstName', 'date', 'year', 'websiteUrl', 'unsubscribeUrl'],
     body: `Dear {{firstName}},
@@ -191,16 +347,23 @@ To unsubscribe, click here: {{unsubscribeUrl}}
 {{websiteUrl}}`,
   },
   {
-    name: 'Contact Form Auto-Reply',
-    slug: 'contact-autoreply',
-    category: 'general',
-    subject: "We've received your message — AODI",
-    variables: ['name', 'firstName', 'subject', 'contactEmail'],
+    name: 'Application Received (Generic Fallback)',
+    slug: 'application-received',
+    category: 'application',
+    description: 'Generic fallback used if a form-specific template is missing.',
+    subject: 'Your {{applicationType}} has been received — AODI',
+    variables: ['name', 'firstName', 'applicationType', 'nextSteps', 'websiteUrl', 'contactEmail'],
     body: `Dear {{firstName}},
 
-Thank you for reaching out to AODI. We have received your message regarding "{{subject}}" and will respond within 2–3 business days.
+Thank you for submitting your {{applicationType}}.
 
-If your enquiry is urgent, please contact us directly at {{contactEmail}}.
+We have successfully received your application and our team will be in touch with you shortly.
+
+{{nextSteps}}
+
+In the meantime, feel free to explore our programmes and initiatives at {{websiteUrl}}.
+
+If you have any urgent questions, please contact us at {{contactEmail}}.
 
 Warm regards,
 The AODI Team`,

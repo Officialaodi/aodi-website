@@ -18,6 +18,8 @@ import {
   CheckCircle2,
   Database,
   AlertCircle,
+  Zap,
+  Info,
 } from "lucide-react"
 import {
   Select,
@@ -26,7 +28,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { substituteVariables, SAMPLE_VARIABLES, AVAILABLE_VARIABLES } from "@/lib/email-templates"
+import { substituteVariables, SAMPLE_VARIABLES, AVAILABLE_VARIABLES, TRANSACTIONAL_TEMPLATES } from "@/lib/email-templates"
 
 interface EmailTemplate {
   id: number
@@ -41,6 +43,7 @@ interface EmailTemplate {
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
+  transactional: "Transactional",
   application: "Application",
   notification: "Notification",
   newsletter: "Newsletter",
@@ -48,6 +51,15 @@ const CATEGORY_LABELS: Record<string, string> = {
   general: "General",
   donation: "Donation",
 }
+
+// Descriptions for each transactional template slug so admin knows when it fires
+const TRANSACTIONAL_DESCRIPTIONS: Record<string, string> = {}
+TRANSACTIONAL_TEMPLATES.forEach(t => {
+  if (t.description) TRANSACTIONAL_DESCRIPTIONS[t.slug] = t.description
+})
+
+// Slugs that are considered "transactional" even if stored with old category
+const TRANSACTIONAL_SLUGS = new Set(TRANSACTIONAL_TEMPLATES.map(t => t.slug))
 
 export function EmailTemplatesManager() {
   const [templates, setTemplates] = useState<EmailTemplate[]>([])
@@ -63,7 +75,7 @@ export function EmailTemplatesManager() {
     slug: "",
     subject: "",
     body: "",
-    category: "application",
+    category: "transactional",
     variables: "",
   })
   const [saveError, setSaveError] = useState("")
@@ -101,9 +113,9 @@ export function EmailTemplatesManager() {
     setPreviewTemplate(null)
   }
 
-  const handleCreate = () => {
+  const handleCreate = (defaultCategory = "general") => {
     setEditingTemplate(null)
-    setFormData({ name: "", slug: "", subject: "", body: "", category: "application", variables: "" })
+    setFormData({ name: "", slug: "", subject: "", body: "", category: defaultCategory, variables: "" })
     setSaveError("")
     setShowForm(true)
     setPreviewTemplate(null)
@@ -172,13 +184,100 @@ export function EmailTemplatesManager() {
       setSeedStatus("error")
       setSeedMessage("Network error during seeding.")
     }
-    setTimeout(() => setSeedStatus("idle"), 4000)
+    setTimeout(() => setSeedStatus("idle"), 5000)
   }
 
   const renderPreview = (template: EmailTemplate) => {
     const subject = substituteVariables(template.subject, SAMPLE_VARIABLES)
     const body = substituteVariables(template.body, SAMPLE_VARIABLES)
     return { subject, body }
+  }
+
+  // Separate templates into transactional vs other
+  const transactionalTemplates = templates.filter(
+    t => t.category === "transactional" || TRANSACTIONAL_SLUGS.has(t.slug)
+  )
+  const otherTemplates = templates.filter(
+    t => t.category !== "transactional" && !TRANSACTIONAL_SLUGS.has(t.slug)
+  )
+
+  // Count how many transactional templates are missing from DB
+  const missingCount = TRANSACTIONAL_TEMPLATES.filter(
+    st => !templates.some(t => t.slug === st.slug)
+  ).length
+
+  const renderTemplateCard = (template: EmailTemplate, showTriggerBadge = false) => {
+    const isPreviewOpen = previewTemplate?.id === template.id
+    const preview = isPreviewOpen ? renderPreview(template) : null
+    const description = TRANSACTIONAL_DESCRIPTIONS[template.slug]
+
+    return (
+      <Card key={template.id} data-testid={`template-${template.id}`}>
+        <CardHeader className="pb-2">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <CardTitle className="text-base">{template.name}</CardTitle>
+                <Badge
+                  variant="outline"
+                  className={`text-xs ${template.category === "transactional" || TRANSACTIONAL_SLUGS.has(template.slug) ? "bg-amber-50 border-amber-200 text-amber-700" : ""}`}
+                >
+                  {CATEGORY_LABELS[template.category] || template.category}
+                </Badge>
+                {!template.isActive && (
+                  <Badge variant="outline" className="text-xs bg-red-50 border-red-200 text-red-600">Inactive</Badge>
+                )}
+              </div>
+              <p className="text-xs text-gray-400 mt-0.5 font-mono">slug: {template.slug}</p>
+              {description && (
+                <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                  <Zap className="w-3 h-3 text-amber-500 flex-shrink-0" />
+                  {description}
+                </p>
+              )}
+            </div>
+            <div className="flex gap-1 flex-shrink-0">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setPreviewTemplate(isPreviewOpen ? null : template)}
+                data-testid={`button-preview-template-${template.id}`}
+                title="Preview with sample variables"
+              >
+                <Eye className="w-4 h-4 text-blue-600" />
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => handleEdit(template)} data-testid={`button-edit-template-${template.id}`}>
+                <Edit className="w-4 h-4" />
+              </Button>
+              <Button variant="ghost" size="sm" className="text-red-600" onClick={() => handleDelete(template.id)} data-testid={`button-delete-template-${template.id}`}>
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <p className="text-sm font-medium text-gray-700">Subject: {template.subject}</p>
+          {template.variables && (
+            <div className="flex flex-wrap gap-1">
+              {template.variables.split(",").map(v => v.trim()).filter(Boolean).map(v => (
+                <code key={v} className="text-xs bg-gray-100 rounded px-1.5 py-0.5 text-gray-600">{`{{${v}}}`}</code>
+              ))}
+            </div>
+          )}
+          {isPreviewOpen && preview && (
+            <div className="mt-3 border rounded-lg overflow-hidden" data-testid={`preview-pane-${template.id}`}>
+              <div className="bg-gray-100 px-3 py-2 border-b flex items-center justify-between">
+                <span className="text-xs font-medium text-gray-600">Preview (with sample variables)</span>
+                <span className="text-xs text-gray-400">Subject: {preview.subject}</span>
+              </div>
+              <div className="p-4 bg-white max-h-60 overflow-y-auto">
+                <pre className="text-sm text-gray-700 whitespace-pre-wrap font-sans leading-relaxed">{preview.body}</pre>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    )
   }
 
   return (
@@ -203,8 +302,11 @@ export function EmailTemplatesManager() {
               <Database className="w-4 h-4 mr-2" />
             )}
             {seedStatus === "loading" ? "Seeding..." : "Seed System Templates"}
+            {missingCount > 0 && seedStatus === "idle" && (
+              <span className="ml-1.5 bg-amber-100 text-amber-700 text-xs rounded-full px-1.5 py-0.5">{missingCount}</span>
+            )}
           </Button>
-          <Button onClick={handleCreate} className="bg-green-800 hover:bg-green-900 text-white" data-testid="button-create-template">
+          <Button onClick={() => handleCreate("general")} className="bg-green-800 hover:bg-green-900 text-white" data-testid="button-create-template">
             <Plus className="w-4 h-4 mr-2" />
             New Template
           </Button>
@@ -233,79 +335,81 @@ export function EmailTemplatesManager() {
 
       {loading ? (
         <p className="text-center py-8 text-gray-500">Loading templates...</p>
-      ) : templates.length === 0 ? (
-        <Card>
-          <CardContent className="py-8 text-center text-gray-500">
-            <Mail className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-            <p className="font-medium">No email templates yet.</p>
-            <p className="text-sm mt-1">Click <strong>Seed System Templates</strong> to create the built-in set, or create a custom template.</p>
-          </CardContent>
-        </Card>
       ) : (
-        <div className="grid gap-4">
-          {templates.map((template) => {
-            const isPreviewOpen = previewTemplate?.id === template.id
-            const preview = isPreviewOpen ? renderPreview(template) : null
+        <Tabs defaultValue="transactional">
+          <TabsList className="mb-4">
+            <TabsTrigger value="transactional" data-testid="tab-transactional">
+              <Zap className="w-3.5 h-3.5 mr-1.5" />
+              Transactional
+              <span className="ml-1.5 bg-amber-100 text-amber-700 text-xs rounded-full px-1.5 py-0.5">{transactionalTemplates.length}</span>
+            </TabsTrigger>
+            <TabsTrigger value="other" data-testid="tab-other">
+              Other
+              <span className="ml-1.5 bg-gray-100 text-gray-600 text-xs rounded-full px-1.5 py-0.5">{otherTemplates.length}</span>
+            </TabsTrigger>
+          </TabsList>
 
-            return (
-              <Card key={template.id} data-testid={`template-${template.id}`}>
-                <CardHeader className="pb-2">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <CardTitle className="text-base">{template.name}</CardTitle>
-                        <Badge variant="outline" className="text-xs">
-                          {CATEGORY_LABELS[template.category] || template.category}
-                        </Badge>
-                      </div>
-                      <p className="text-xs text-gray-400 mt-0.5">slug: {template.slug}</p>
-                    </div>
-                    <div className="flex gap-1 flex-shrink-0">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setPreviewTemplate(isPreviewOpen ? null : template)}
-                        data-testid={`button-preview-template-${template.id}`}
-                        title="Preview with sample variables"
-                      >
-                        <Eye className="w-4 h-4 text-blue-600" />
-                      </Button>
-                      <Button variant="ghost" size="sm" onClick={() => handleEdit(template)} data-testid={`button-edit-template-${template.id}`}>
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                      <Button variant="ghost" size="sm" className="text-red-600" onClick={() => handleDelete(template.id)} data-testid={`button-delete-template-${template.id}`}>
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <p className="text-sm font-medium text-gray-700">Subject: {template.subject}</p>
-                  {template.variables && (
-                    <div className="flex flex-wrap gap-1">
-                      {template.variables.split(",").map(v => v.trim()).filter(Boolean).map(v => (
-                        <code key={v} className="text-xs bg-gray-100 rounded px-1.5 py-0.5 text-gray-600">{`{{${v}}}`}</code>
-                      ))}
-                    </div>
-                  )}
+          <TabsContent value="transactional" className="space-y-4">
+            {/* Explanation banner */}
+            <div className="flex gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <Info className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
+              <div className="text-sm text-blue-800">
+                <p className="font-medium mb-1">Platform Transactional Emails</p>
+                <p>These emails are sent automatically by the platform (e.g. when someone applies or submits a form). Edit the subject and body here and the platform will use your version instantly. If a template is deleted, the platform falls back to a built-in default.</p>
+                {missingCount > 0 && (
+                  <p className="mt-2 font-medium text-amber-700">
+                    {missingCount} template{missingCount > 1 ? "s are" : " is"} not yet in the database — click <strong>Seed System Templates</strong> above to add them.
+                  </p>
+                )}
+              </div>
+            </div>
 
-                  {/* Preview pane */}
-                  {isPreviewOpen && preview && (
-                    <div className="mt-3 border rounded-lg overflow-hidden" data-testid={`preview-pane-${template.id}`}>
-                      <div className="bg-gray-100 px-3 py-2 border-b flex items-center justify-between">
-                        <span className="text-xs font-medium text-gray-600">Preview (with sample variables)</span>
-                        <span className="text-xs text-gray-400">Subject: {preview.subject}</span>
-                      </div>
-                      <div className="p-4 bg-white max-h-60 overflow-y-auto">
-                        <pre className="text-sm text-gray-700 whitespace-pre-wrap font-sans leading-relaxed">{preview.body}</pre>
-                      </div>
-                    </div>
-                  )}
+            {transactionalTemplates.length === 0 ? (
+              <Card>
+                <CardContent className="py-8 text-center text-gray-500">
+                  <Zap className="w-10 h-10 text-gray-300 mx-auto mb-3" />
+                  <p className="font-medium">No transactional templates in database yet.</p>
+                  <p className="text-sm mt-1">Click <strong>Seed System Templates</strong> above to load all 12 platform email templates.</p>
+                  <Button
+                    onClick={handleSeedSystemTemplates}
+                    disabled={seedStatus === "loading"}
+                    className="mt-4 bg-green-800 hover:bg-green-900 text-white"
+                    data-testid="button-seed-transactional-empty"
+                  >
+                    {seedStatus === "loading" ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Database className="w-4 h-4 mr-2" />}
+                    Seed Now
+                  </Button>
                 </CardContent>
               </Card>
-            )
-          })}
-        </div>
+            ) : (
+              <div className="grid gap-4">
+                {transactionalTemplates.map(template => renderTemplateCard(template, true))}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="other" className="space-y-4">
+            <div className="flex justify-end">
+              <Button onClick={() => handleCreate("newsletter")} size="sm" variant="outline" data-testid="button-create-other-template">
+                <Plus className="w-4 h-4 mr-1.5" />
+                New Template
+              </Button>
+            </div>
+            {otherTemplates.length === 0 ? (
+              <Card>
+                <CardContent className="py-8 text-center text-gray-500">
+                  <Mail className="w-10 h-10 text-gray-300 mx-auto mb-3" />
+                  <p className="font-medium">No other templates yet.</p>
+                  <p className="text-sm mt-1">Use the <strong>New Template</strong> button to create newsletter or custom templates.</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid gap-4">
+                {otherTemplates.map(template => renderTemplateCard(template))}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
       )}
 
       {/* Create / Edit Form Modal */}
@@ -342,9 +446,14 @@ export function EmailTemplatesManager() {
                   <Input
                     value={formData.slug}
                     onChange={(e) => setFormData({ ...formData, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-") })}
-                    placeholder="e.g., application-accepted"
+                    placeholder="e.g., ack-mentor"
+                    disabled={!!editingTemplate && TRANSACTIONAL_SLUGS.has(editingTemplate.slug)}
+                    className={editingTemplate && TRANSACTIONAL_SLUGS.has(editingTemplate.slug) ? "bg-gray-50 text-gray-500" : ""}
                     data-testid="input-template-slug"
                   />
+                  {editingTemplate && TRANSACTIONAL_SLUGS.has(editingTemplate.slug) && (
+                    <p className="text-xs text-amber-600 mt-1">Slug is locked — the platform uses this exact slug to find the template.</p>
+                  )}
                 </div>
                 <div>
                   <label className="text-sm font-medium mb-1 block">Category *</label>
@@ -353,9 +462,10 @@ export function EmailTemplatesManager() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="transactional">Transactional (auto-sent by platform)</SelectItem>
+                      <SelectItem value="newsletter">Newsletter</SelectItem>
                       <SelectItem value="application">Application</SelectItem>
                       <SelectItem value="notification">Notification</SelectItem>
-                      <SelectItem value="newsletter">Newsletter</SelectItem>
                       <SelectItem value="system">System</SelectItem>
                       <SelectItem value="general">General</SelectItem>
                       <SelectItem value="donation">Donation</SelectItem>
@@ -367,7 +477,7 @@ export function EmailTemplatesManager() {
                   <Input
                     value={formData.subject}
                     onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-                    placeholder="Email subject line — supports {{variables}}"
+                    placeholder="Email subject — supports {{variables}}"
                     data-testid="input-template-subject"
                   />
                 </div>
@@ -376,21 +486,22 @@ export function EmailTemplatesManager() {
                   <Textarea
                     value={formData.body}
                     onChange={(e) => setFormData({ ...formData, body: e.target.value })}
-                    placeholder="Email body. Use {{name}}, {{firstName}}, {{applicationType}}, etc."
-                    rows={10}
+                    placeholder="Email body. Use {{firstName}}, {{name}}, {{applicationType}}, {{websiteUrl}}, {{contactEmail}}, {{resetUrl}}, etc."
+                    rows={12}
                     data-testid="input-template-body"
                     className="font-mono text-sm"
                   />
+                  <p className="text-xs text-gray-400 mt-1">Use double blank lines between paragraphs. HTML tags like &lt;strong&gt;, &lt;a href=&quot;…&quot;&gt; are supported.</p>
                 </div>
                 <div>
                   <label className="text-sm font-medium mb-1 block">Variables used (comma-separated keys)</label>
                   <Input
                     value={formData.variables}
                     onChange={(e) => setFormData({ ...formData, variables: e.target.value })}
-                    placeholder="e.g., name, applicationType, date"
+                    placeholder="e.g., firstName, name, applicationType, resetUrl"
                     data-testid="input-template-variables"
                   />
-                  <p className="text-xs text-gray-400 mt-1">List the variable keys this template uses — for documentation only.</p>
+                  <p className="text-xs text-gray-400 mt-1">For documentation only — helps you remember which variables this template uses.</p>
                 </div>
                 {saveError && (
                   <p className="text-red-600 text-sm" data-testid="text-save-error">{saveError}</p>

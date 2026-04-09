@@ -4,7 +4,7 @@ import { emailTemplates } from "@/lib/schema"
 import { eq } from "drizzle-orm"
 import { cookies } from "next/headers"
 import crypto from "crypto"
-import { SYSTEM_TEMPLATES } from "@/lib/email-templates"
+import { SYSTEM_TEMPLATES, TRANSACTIONAL_TEMPLATES } from "@/lib/email-templates"
 
 export const dynamic = 'force-dynamic'
 
@@ -18,6 +18,8 @@ function verifySignedToken(token: string, sessionSecret: string): boolean {
   } catch { return false }
 }
 
+const TRANSACTIONAL_SLUGS = new Set(TRANSACTIONAL_TEMPLATES.map(t => t.slug))
+
 export async function POST(request: NextRequest) {
   const sessionSecret = process.env.SESSION_SECRET
   if (!sessionSecret) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -27,15 +29,23 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
-  const results: { slug: string; action: "created" | "skipped" }[] = []
+  const results: { slug: string; action: "created" | "skipped" | "updated" }[] = []
 
   for (const tmpl of SYSTEM_TEMPLATES) {
-    const [existing] = await db.select({ id: emailTemplates.id })
+    const [existing] = await db.select({ id: emailTemplates.id, category: emailTemplates.category })
       .from(emailTemplates)
       .where(eq(emailTemplates.slug, tmpl.slug))
 
     if (existing) {
-      results.push({ slug: tmpl.slug, action: "skipped" })
+      // If it's a transactional template stored under an old category, update the category
+      if (TRANSACTIONAL_SLUGS.has(tmpl.slug) && existing.category !== 'transactional') {
+        await db.update(emailTemplates)
+          .set({ category: 'transactional' })
+          .where(eq(emailTemplates.id, existing.id))
+        results.push({ slug: tmpl.slug, action: "updated" })
+      } else {
+        results.push({ slug: tmpl.slug, action: "skipped" })
+      }
       continue
     }
 
@@ -52,11 +62,12 @@ export async function POST(request: NextRequest) {
   }
 
   const created = results.filter(r => r.action === "created").length
+  const updated = results.filter(r => r.action === "updated").length
   const skipped = results.filter(r => r.action === "skipped").length
 
   return NextResponse.json({
     success: true,
-    message: `Seeded ${created} system template(s). ${skipped} already existed.`,
+    message: `Created ${created} template(s), updated ${updated} to transactional category. ${skipped} already up to date.`,
     results,
   })
 }

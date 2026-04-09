@@ -1,5 +1,7 @@
 import { db } from './db'
-import { emailLogs } from './schema'
+import { emailLogs, emailTemplates } from './schema'
+import { eq, and } from 'drizzle-orm'
+import { substituteVariables } from './email-templates'
 
 const BREVO_API_URL = 'https://api.brevo.com/v3/smtp/email'
 const AODI_GREEN = '#0F3D2E'
@@ -97,6 +99,48 @@ function dataRow(label: string, value: string): string {
     <td style="padding:8px 12px;border:1px solid #e8ecef;font-weight:600;font-size:13px;color:#374151;background:#f9fafb;width:40%;">${label}</td>
     <td style="padding:8px 12px;border:1px solid #e8ecef;font-size:13px;color:#374151;">${value}</td>
   </tr>`
+}
+
+/**
+ * Converts a plain-text template body into styled HTML email paragraphs.
+ * Supports HTML tags written directly in the template body.
+ */
+function templateBodyToHtml(body: string): string {
+  return body
+    .split(/\n\n+/)
+    .filter(s => s.trim())
+    .map(para => {
+      const content = para.trim().replace(/\n/g, '<br/>')
+      return `<p style="margin:0 0 16px;font-size:15px;color:#374151;line-height:1.6;">${content}</p>`
+    })
+    .join('')
+}
+
+// ─── DB template lookup ────────────────────────────────────────────────────────
+
+/**
+ * Look up a transactional template from the database by slug.
+ * Returns null if not found or inactive — caller should use hardcoded fallback.
+ */
+async function getDbTemplate(
+  slug: string,
+  vars: Record<string, string>
+): Promise<{ subject: string; htmlBody: string } | null> {
+  try {
+    const [tmpl] = await db
+      .select({ subject: emailTemplates.subject, body: emailTemplates.body })
+      .from(emailTemplates)
+      .where(and(eq(emailTemplates.slug, slug), eq(emailTemplates.isActive, true)))
+
+    if (!tmpl) return null
+
+    const subject = substituteVariables(tmpl.subject, vars)
+    const bodyText = substituteVariables(tmpl.body, vars)
+    const htmlBody = templateBodyToHtml(bodyText)
+    return { subject, htmlBody }
+  } catch {
+    return null
+  }
 }
 
 // ─── Core send function ───────────────────────────────────────────────────────
@@ -206,16 +250,33 @@ export async function sendPasswordResetEmail(
   name: string,
   resetUrl: string
 ): Promise<SendEmailResult> {
-  const subject = 'Reset your AODI admin password'
-  const html = baseHtml(subject, 'You requested a password reset for your AODI admin account.', `
-    ${heading('Password Reset Request')}
-    ${paragraph(`Hi ${name},`)}
-    ${paragraph('We received a request to reset the password for your AODI admin account. Click the button below to set a new password.')}
-    ${button('Reset My Password', resetUrl)}
-    ${highlight('This link expires in 1 hour. If you did not request a password reset, you can safely ignore this email.')}
-    ${divider()}
-    ${paragraph('For security, this link can only be used once. If you need another reset link, visit the <a href="${getBaseUrl()}/admin/forgot-password" style="color:${AODI_GREEN};">forgot password page</a>.')}
-  `)
+  const firstName = name.split(' ')[0]
+  const baseUrl = getBaseUrl()
+
+  // Try DB template first
+  const dbTmpl = await getDbTemplate('password-reset', {
+    name, firstName, resetUrl, websiteUrl: baseUrl,
+    contactEmail: 'info@africaofourdreaminitiative.org',
+  })
+
+  let subject: string
+  let html: string
+
+  if (dbTmpl) {
+    subject = dbTmpl.subject
+    html = baseHtml(subject, 'You requested a password reset for your AODI admin account.', dbTmpl.htmlBody)
+  } else {
+    subject = 'Reset your AODI admin password'
+    html = baseHtml(subject, 'You requested a password reset for your AODI admin account.', `
+      ${heading('Password Reset Request')}
+      ${paragraph(`Hi ${firstName},`)}
+      ${paragraph('We received a request to reset the password for your AODI admin account. Click the button below to set a new password.')}
+      ${button('Reset My Password', resetUrl)}
+      ${highlight('This link expires in 1 hour. If you did not request a password reset, you can safely ignore this email.')}
+      ${divider()}
+      ${paragraph(`For security, this link can only be used once. If you need another reset link, visit the <a href="${baseUrl}/admin/forgot-password" style="color:${AODI_GREEN};">forgot password page</a>.`)}
+    `)
+  }
 
   const result = await sendBrevoEmail({ to: { email: to, name }, subject, html, tags: ['password-reset'] })
   await logEmail({ recipientEmail: to, recipientName: name, subject, body: resetUrl, status: result.success ? 'sent' : 'failed', errorMessage: result.error, brevoMessageId: result.messageId })
@@ -256,21 +317,42 @@ export async function sendApplicationAcknowledgement(
   name: string,
   applicationId?: number
 ): Promise<SendEmailResult> {
+  const firstName = name.split(' ')[0]
   const label = formLabels[formType] || 'Submission'
   const steps = nextSteps[formType] || 'Our team will be in touch shortly.'
-  const subject = formType === 'contact'
-    ? "We've received your message — AODI"
-    : `Your ${label} has been received — AODI`
+  const baseUrl = getBaseUrl()
+  const contactEmail = 'info@africaofourdreaminitiative.org'
 
-  const html = baseHtml(subject, `Thank you for your ${label.toLowerCase()}.`, `
-    ${heading(`Thank you, ${name.split(' ')[0]}!`)}
-    ${paragraph(`We have received your <strong>${label}</strong> and wanted to confirm it has been successfully submitted.`)}
-    ${highlight(steps)}
-    ${divider()}
-    ${paragraph('In the meantime, feel free to explore our website to learn more about our programmes and impact.')}
-    ${button('Visit AODI Website', getBaseUrl())}
-    ${paragraph(`If you have any urgent questions, please contact us at <a href="mailto:info@africaofourdreaminitiative.org" style="color:${AODI_GREEN};">info@africaofourdreaminitiative.org</a>.`)}
-  `)
+  // Try form-specific DB template first (e.g. "ack-mentor", "ack-chembridge-2026")
+  const templateSlug = `ack-${formType}`
+  const dbTmpl = await getDbTemplate(templateSlug, {
+    name, firstName, applicationType: label, nextSteps: steps,
+    websiteUrl: baseUrl, contactEmail,
+    date: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }),
+    year: String(new Date().getFullYear()),
+  })
+
+  let subject: string
+  let html: string
+
+  if (dbTmpl) {
+    subject = dbTmpl.subject
+    html = baseHtml(subject, `Thank you for your ${label.toLowerCase()}.`, dbTmpl.htmlBody)
+  } else {
+    // Hardcoded fallback
+    subject = formType === 'contact'
+      ? "We've received your message — AODI"
+      : `Your ${label} has been received — AODI`
+    html = baseHtml(subject, `Thank you for your ${label.toLowerCase()}.`, `
+      ${heading(`Thank you, ${firstName}!`)}
+      ${paragraph(`We have received your <strong>${label}</strong> and wanted to confirm it has been successfully submitted.`)}
+      ${highlight(steps)}
+      ${divider()}
+      ${paragraph('In the meantime, feel free to explore our website to learn more about our programmes and impact.')}
+      ${button('Visit AODI Website', baseUrl)}
+      ${paragraph(`If you have any urgent questions, please contact us at <a href="mailto:${contactEmail}" style="color:${AODI_GREEN};">${contactEmail}</a>.`)}
+    `)
+  }
 
   const result = await sendBrevoEmail({ to: { email: to, name }, subject, html, tags: ['application-ack', formType] })
   await logEmail({ recipientEmail: to, recipientName: name, subject, body: steps, status: result.success ? 'sent' : 'failed', applicationId, errorMessage: result.error, brevoMessageId: result.messageId })
@@ -300,7 +382,23 @@ export async function sendAdminNotification(params: {
 }): Promise<SendEmailResult> {
   const adminEmail = process.env.ADMIN_NOTIFICATION_EMAIL || 'admin.board@africaofourdreaminitiative.org'
   const label = formLabels[params.formType] || 'Form Submission'
-  const subject = `New ${label}: ${params.submitterName}`
+  const baseUrl = getBaseUrl()
+  const dateStr = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+
+  // Try DB template first
+  const dbTmpl = await getDbTemplate('admin-notification', {
+    name: params.submitterName,
+    email: params.email,
+    applicationType: label,
+    date: new Date().toUTCString(),
+    adminDashboardUrl: `${baseUrl}/admin`,
+    websiteUrl: baseUrl,
+    year: String(new Date().getFullYear()),
+  })
+
+  const subject = dbTmpl
+    ? dbTmpl.subject
+    : `New ${label}: ${params.submitterName}`
 
   const rows = Object.entries(params.payload)
     .filter(([k]) => !['captchaToken', 'agreedToPolicy', 'type'].includes(k))
@@ -308,8 +406,10 @@ export async function sendAdminNotification(params: {
     .join('')
 
   const html = baseHtml(subject, `New ${label} from ${params.submitterName}`, `
-    ${heading(`New ${label}`)}
-    ${paragraph(`A new submission has been received from <strong>${params.submitterName}</strong> (${params.email}).`)}
+    ${dbTmpl ? dbTmpl.htmlBody : `
+      ${heading(`New ${label}`)}
+      ${paragraph(`A new submission has been received from <strong>${params.submitterName}</strong> (${params.email}).`)}
+    `}
     ${divider()}
     <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
       ${dataRow('Submitted', new Date().toUTCString())}
@@ -318,7 +418,7 @@ export async function sendAdminNotification(params: {
       ${rows}
     </table>
     ${divider()}
-    ${button('View in Admin Dashboard', `${getBaseUrl()}/admin`)}
+    ${button('View in Admin Dashboard', `${baseUrl}/admin`)}
   `)
 
   const result = await sendBrevoEmail({ to: { email: adminEmail, name: 'AODI Admin' }, subject, html, replyTo: { email: params.email, name: params.submitterName }, tags: ['admin-notification'] })
@@ -397,7 +497,6 @@ export async function sendBulkEmail(
       failed++
       errors.push(`${recipient.email}: ${result.error}`)
     }
-    // Small delay to respect rate limits
     await new Promise(r => setTimeout(r, 100))
   }
 
@@ -448,7 +547,6 @@ export async function syncContactToBrevo(params: {
     }
 
     const errorText = await response.text()
-    // 400 with "Contact already exist" is still a success (updateEnabled should handle it)
     if (response.status === 400 && errorText.includes('already exist')) {
       return { success: true }
     }
