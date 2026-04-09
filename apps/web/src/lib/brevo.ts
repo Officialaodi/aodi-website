@@ -1,6 +1,6 @@
 import { db } from './db'
-import { emailLogs, emailTemplates } from './schema'
-import { eq, and } from 'drizzle-orm'
+import { emailLogs, emailTemplates, siteSettings } from './schema'
+import { eq, and, inArray } from 'drizzle-orm'
 import { substituteVariables } from './email-templates'
 
 const BREVO_API_URL = 'https://api.brevo.com/v3/smtp/email'
@@ -23,9 +23,36 @@ function getBaseUrl() {
   return process.env.NEXT_PUBLIC_BASE_URL || 'https://africaofourdreaminitiative.org'
 }
 
+// ─── Org settings (contact email, admin notification email) ───────────────────
+// Reads from site_settings so the admin can update them without code changes.
+
+const DEFAULT_CONTACT_EMAIL = 'aodi.info@africaofourdreaminitiative.org'
+const DEFAULT_ADMIN_EMAIL = 'admin.board@africaofourdreaminitiative.org'
+
+async function getOrgSettings(): Promise<{ contactEmail: string; adminEmail: string }> {
+  try {
+    const rows = await db
+      .select({ key: siteSettings.key, value: siteSettings.value })
+      .from(siteSettings)
+      .where(inArray(siteSettings.key, ['contact_email', 'admin_notification_email']))
+
+    const map = Object.fromEntries(rows.map(r => [r.key, r.value || '']))
+    return {
+      contactEmail: map.contact_email?.trim() || DEFAULT_CONTACT_EMAIL,
+      adminEmail: map.admin_notification_email?.trim() || process.env.ADMIN_NOTIFICATION_EMAIL || DEFAULT_ADMIN_EMAIL,
+    }
+  } catch {
+    return {
+      contactEmail: DEFAULT_CONTACT_EMAIL,
+      adminEmail: process.env.ADMIN_NOTIFICATION_EMAIL || DEFAULT_ADMIN_EMAIL,
+    }
+  }
+}
+
 // ─── Base HTML template ───────────────────────────────────────────────────────
 
-function baseHtml(title: string, previewText: string, bodyContent: string): string {
+function baseHtml(title: string, previewText: string, bodyContent: string, contactEmail = DEFAULT_CONTACT_EMAIL): string {
+  const baseUrl = getBaseUrl()
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -57,9 +84,9 @@ function baseHtml(title: string, previewText: string, bodyContent: string): stri
         <td style="background:#f5f7f9;padding:24px 32px;text-align:center;border-top:1px solid #e8ecef;">
           <p style="margin:0 0 8px;font-size:12px;color:#6b7280;">Africa of Our Dream Education Initiative (AODI) · UK Registered</p>
           <p style="margin:0;font-size:11px;color:#9ca3af;">
-            <a href="${getBaseUrl()}" style="color:${AODI_GREEN};text-decoration:none;">africaofourdreaminitiative.org</a>
+            <a href="${baseUrl}" style="color:${AODI_GREEN};text-decoration:none;">africaofourdreaminitiative.org</a>
             &nbsp;·&nbsp;
-            <a href="mailto:info@africaofourdreaminitiative.org" style="color:${AODI_GREEN};text-decoration:none;">info@africaofourdreaminitiative.org</a>
+            <a href="mailto:${contactEmail}" style="color:${AODI_GREEN};text-decoration:none;">${contactEmail}</a>
           </p>
         </td>
       </tr>
@@ -252,11 +279,11 @@ export async function sendPasswordResetEmail(
 ): Promise<SendEmailResult> {
   const firstName = name.split(' ')[0]
   const baseUrl = getBaseUrl()
+  const { contactEmail } = await getOrgSettings()
 
   // Try DB template first
   const dbTmpl = await getDbTemplate('password-reset', {
-    name, firstName, resetUrl, websiteUrl: baseUrl,
-    contactEmail: 'info@africaofourdreaminitiative.org',
+    name, firstName, resetUrl, websiteUrl: baseUrl, contactEmail,
   })
 
   let subject: string
@@ -264,7 +291,7 @@ export async function sendPasswordResetEmail(
 
   if (dbTmpl) {
     subject = dbTmpl.subject
-    html = baseHtml(subject, 'You requested a password reset for your AODI admin account.', dbTmpl.htmlBody)
+    html = baseHtml(subject, 'You requested a password reset for your AODI admin account.', dbTmpl.htmlBody, contactEmail)
   } else {
     subject = 'Reset your AODI admin password'
     html = baseHtml(subject, 'You requested a password reset for your AODI admin account.', `
@@ -275,7 +302,7 @@ export async function sendPasswordResetEmail(
       ${highlight('This link expires in 1 hour. If you did not request a password reset, you can safely ignore this email.')}
       ${divider()}
       ${paragraph(`For security, this link can only be used once. If you need another reset link, visit the <a href="${baseUrl}/admin/forgot-password" style="color:${AODI_GREEN};">forgot password page</a>.`)}
-    `)
+    `, contactEmail)
   }
 
   const result = await sendBrevoEmail({ to: { email: to, name }, subject, html, tags: ['password-reset'] })
@@ -321,7 +348,7 @@ export async function sendApplicationAcknowledgement(
   const label = formLabels[formType] || 'Submission'
   const steps = nextSteps[formType] || 'Our team will be in touch shortly.'
   const baseUrl = getBaseUrl()
-  const contactEmail = 'info@africaofourdreaminitiative.org'
+  const { contactEmail } = await getOrgSettings()
 
   // Try form-specific DB template first (e.g. "ack-mentor", "ack-chembridge-2026")
   const templateSlug = `ack-${formType}`
@@ -337,7 +364,7 @@ export async function sendApplicationAcknowledgement(
 
   if (dbTmpl) {
     subject = dbTmpl.subject
-    html = baseHtml(subject, `Thank you for your ${label.toLowerCase()}.`, dbTmpl.htmlBody)
+    html = baseHtml(subject, `Thank you for your ${label.toLowerCase()}.`, dbTmpl.htmlBody, contactEmail)
   } else {
     // Hardcoded fallback
     subject = formType === 'contact'
@@ -351,7 +378,7 @@ export async function sendApplicationAcknowledgement(
       ${paragraph('In the meantime, feel free to explore our website to learn more about our programmes and impact.')}
       ${button('Visit AODI Website', baseUrl)}
       ${paragraph(`If you have any urgent questions, please contact us at <a href="mailto:${contactEmail}" style="color:${AODI_GREEN};">${contactEmail}</a>.`)}
-    `)
+    `, contactEmail)
   }
 
   const result = await sendBrevoEmail({ to: { email: to, name }, subject, html, tags: ['application-ack', formType] })
@@ -380,7 +407,7 @@ export async function sendAdminNotification(params: {
   payload: Record<string, unknown>
   applicationId?: number
 }): Promise<SendEmailResult> {
-  const adminEmail = process.env.ADMIN_NOTIFICATION_EMAIL || 'admin.board@africaofourdreaminitiative.org'
+  const { adminEmail, contactEmail } = await getOrgSettings()
   const label = formLabels[params.formType] || 'Form Submission'
   const baseUrl = getBaseUrl()
   const dateStr = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
@@ -419,7 +446,7 @@ export async function sendAdminNotification(params: {
     </table>
     ${divider()}
     ${button('View in Admin Dashboard', `${baseUrl}/admin`)}
-  `)
+  `, contactEmail)
 
   const result = await sendBrevoEmail({ to: { email: adminEmail, name: 'AODI Admin' }, subject, html, replyTo: { email: params.email, name: params.submitterName }, tags: ['admin-notification'] })
   return result
@@ -449,7 +476,8 @@ export async function sendCustomEmail(params: {
   contactId?: number
   templateId?: number
 }): Promise<SendEmailResult> {
-  const html = baseHtml(params.subject, params.subject, params.htmlBody)
+  const { contactEmail } = await getOrgSettings()
+  const html = baseHtml(params.subject, params.subject, params.htmlBody, contactEmail)
   const emailParams: SendEmailParams = {
     to: { email: params.to, name: params.name },
     subject: params.subject,

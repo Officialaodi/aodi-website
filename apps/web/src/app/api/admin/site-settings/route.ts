@@ -80,12 +80,18 @@ const DEFAULT_SETTINGS = [
   { key: "support_dollar_amounts", value: '[{"value":10,"label":"$10"},{"value":25,"label":"$25"},{"value":50,"label":"$50"}]', category: "support", label: "Dollar Donation Amounts", fieldType: "json", description: "Preset Dollar donation amounts (JSON array)" },
   { key: "support_giving_reasons", value: '[{"value":"","label":"Select a reason (optional)"},{"value":"general","label":"General Support"},{"value":"mentorship","label":"Mentorship Programs"},{"value":"empowerher","label":"EmpowerHer Initiative"},{"value":"education","label":"Education & Scholarships"},{"value":"events","label":"Conferences & Events"},{"value":"other","label":"Other (please specify)"}]', category: "support", label: "Giving Reasons", fieldType: "json", description: "Reasons for donation dropdown options (JSON array)" },
   { key: "governance_hero_image", value: "", category: "governance", label: "Hero Background Image", fieldType: "image", description: "Background image for the governance page hero section" },
+  { key: "contact_email", value: "aodi.info@africaofourdreaminitiative.org", category: "general", label: "Public Contact Email", fieldType: "text", description: "The main contact email shown in emails sent to applicants and on the website (e.g. info@ or aodi.info@)" },
+  { key: "admin_notification_email", value: "admin.board@africaofourdreaminitiative.org", category: "general", label: "Admin Notification Email", fieldType: "text", description: "Where new form submission notifications are sent (admin inbox email)" },
 ]
 
 async function seedDefaultSettings() {
-  const existing = await db.select().from(siteSettings).limit(1)
-  if (existing.length === 0) {
-    await db.insert(siteSettings).values(DEFAULT_SETTINGS)
+  // Incremental seeding: always add any missing settings, even if the table already has data
+  const existingKeys = await db.select({ key: siteSettings.key }).from(siteSettings)
+  const existingSet = new Set(existingKeys.map(r => r.key))
+
+  const missing = DEFAULT_SETTINGS.filter(s => !existingSet.has(s.key))
+  if (missing.length > 0) {
+    await db.insert(siteSettings).values(missing)
   }
 }
 
