@@ -302,6 +302,7 @@ export const emailLogs = pgTable("email_logs", {
   applicationId: integer("application_id"),
   contactId: integer("contact_id"),
   templateId: integer("template_id"),
+  syncedEmailId: integer("synced_email_id"),
   recipientEmail: text("recipient_email").notNull(),
   recipientName: text("recipient_name"),
   subject: text("subject").notNull(),

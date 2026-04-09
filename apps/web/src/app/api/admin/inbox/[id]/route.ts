@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server"
 import { cookies } from "next/headers"
 import crypto from "crypto"
 import { db } from "@/lib/db"
-import { syncedEmails, emailAccounts } from "@/lib/schema"
-import { eq } from "drizzle-orm"
+import { syncedEmails, emailAccounts, emailLogs } from "@/lib/schema"
+import { eq, desc } from "drizzle-orm"
 
 export const dynamic = 'force-dynamic'
 
@@ -68,7 +68,21 @@ export async function GET(
       .set({ isRead: true })
       .where(eq(syncedEmails.id, numericId))
 
-    return NextResponse.json(email)
+    const replies = await db
+      .select({
+        id: emailLogs.id,
+        subject: emailLogs.subject,
+        body: emailLogs.body,
+        recipientEmail: emailLogs.recipientEmail,
+        recipientName: emailLogs.recipientName,
+        status: emailLogs.status,
+        sentAt: emailLogs.sentAt,
+      })
+      .from(emailLogs)
+      .where(eq(emailLogs.syncedEmailId, numericId))
+      .orderBy(desc(emailLogs.sentAt))
+
+    return NextResponse.json({ ...email, replies })
   } catch (error) {
     console.error("Error fetching email:", error)
     return NextResponse.json({ error: "Failed to fetch email" }, { status: 500 })

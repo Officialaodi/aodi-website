@@ -19,6 +19,16 @@ import {
 } from "lucide-react"
 import { EmailComposer } from "./EmailComposer"
 
+interface EmailReply {
+  id: number
+  subject: string
+  body: string
+  recipientEmail: string
+  recipientName: string | null
+  status: string
+  sentAt: string
+}
+
 interface SyncedEmail {
   id: number
   messageId: string
@@ -36,6 +46,7 @@ interface SyncedEmail {
   linkedEntityId: number | null
   accountName: string | null
   accountEmail: string | null
+  replies?: EmailReply[]
 }
 
 interface EmailAccount {
@@ -354,6 +365,8 @@ export function CRMInbox() {
           recipientEmail={selectedEmail.fromEmail}
           recipientName={selectedEmail.fromName || undefined}
           defaultSubject={`Re: ${selectedEmail.subject}`}
+          syncedEmailId={selectedEmail.id}
+          onSent={() => openEmailDetail(selectedEmail)}
         />
       )}
 
@@ -472,7 +485,7 @@ export function CRMInbox() {
             </div>
 
             {/* Email body */}
-            <div className="flex-1 overflow-y-auto border-t pt-3">
+            <div className="overflow-y-auto border-t pt-3">
               {selectedEmail.htmlBody ? (
                 <SafeHtml
                   html={selectedEmail.htmlBody}
@@ -484,6 +497,36 @@ export function CRMInbox() {
                 </pre>
               )}
             </div>
+
+            {/* Sent replies thread */}
+            {selectedEmail.replies && selectedEmail.replies.length > 0 && (
+              <div className="border-t pt-3 space-y-3">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide flex items-center gap-1">
+                  <Reply className="w-3 h-3" />
+                  Sent Replies ({selectedEmail.replies.length})
+                </p>
+                {selectedEmail.replies.map(reply => (
+                  <div key={reply.id} className="bg-green-50 border border-green-200 rounded-lg p-3">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-xs font-medium text-green-800">
+                        You → {reply.recipientName ? `${reply.recipientName} <${reply.recipientEmail}>` : reply.recipientEmail}
+                      </span>
+                      <span className="text-xs text-gray-400">
+                        {new Date(reply.sentAt).toLocaleString()}
+                      </span>
+                    </div>
+                    <p className="text-xs font-medium text-gray-600 mb-1">{reply.subject}</p>
+                    <div
+                      className="text-xs text-gray-700 leading-relaxed line-clamp-4 prose prose-xs max-w-none"
+                      dangerouslySetInnerHTML={{ __html: reply.body }}
+                    />
+                    <span className={`mt-1.5 inline-block text-xs px-1.5 py-0.5 rounded-full font-medium ${
+                      reply.status === "sent" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                    }`}>{reply.status}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       )}

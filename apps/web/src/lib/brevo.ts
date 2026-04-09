@@ -249,6 +249,7 @@ export async function logEmail(params: {
   applicationId?: number
   contactId?: number
   templateId?: number
+  syncedEmailId?: number
   errorMessage?: string
   brevoMessageId?: string
 }) {
@@ -262,6 +263,7 @@ export async function logEmail(params: {
       applicationId: params.applicationId,
       contactId: params.contactId,
       templateId: params.templateId,
+      syncedEmailId: params.syncedEmailId,
       errorMessage: params.errorMessage,
       brevoMessageId: params.brevoMessageId,
     })
@@ -475,6 +477,7 @@ export async function sendCustomEmail(params: {
   applicationId?: number
   contactId?: number
   templateId?: number
+  syncedEmailId?: number
 }): Promise<SendEmailResult> {
   const { contactEmail } = await getOrgSettings()
   const html = baseHtml(params.subject, params.subject, params.htmlBody, contactEmail)
@@ -496,6 +499,7 @@ export async function sendCustomEmail(params: {
     applicationId: params.applicationId,
     contactId: params.contactId,
     templateId: params.templateId,
+    syncedEmailId: params.syncedEmailId,
     errorMessage: result.error,
     brevoMessageId: result.messageId,
   })

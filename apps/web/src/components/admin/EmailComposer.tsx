@@ -34,9 +34,11 @@ interface EmailComposerProps {
   recipientName?: string
   applicationId?: number
   contactId?: number
+  syncedEmailId?: number
   defaultSubject?: string
   defaultBody?: string
   templateCategory?: string
+  onSent?: () => void
 }
 
 export function EmailComposer({
@@ -46,9 +48,11 @@ export function EmailComposer({
   recipientName = "",
   applicationId,
   contactId,
+  syncedEmailId,
   defaultSubject = "",
   defaultBody = "",
   templateCategory,
+  onSent,
 }: EmailComposerProps) {
   const [templates, setTemplates] = useState<EmailTemplate[]>([])
   const [selectedTemplate, setSelectedTemplate] = useState("")
@@ -190,6 +194,7 @@ export function EmailComposer({
           body: applyVariables(body),
           applicationId,
           contactId,
+          syncedEmailId,
           templateId: selectedTemplate ? parseInt(selectedTemplate) : undefined,
         }),
       })
@@ -197,6 +202,7 @@ export function EmailComposer({
       const data = await res.json()
       if (res.ok && data.success) {
         setStatus("success")
+        onSent?.()
         setTimeout(() => { onClose(); setStatus("idle") }, 2000)
       } else {
         setStatus("error")

@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { applicationId, contactId, templateId, recipientEmail, recipientName, ccEmail, bccEmail, subject, body } = await request.json()
+    const { applicationId, contactId, templateId, syncedEmailId, recipientEmail, recipientName, ccEmail, bccEmail, subject, body } = await request.json()
 
     if (!recipientEmail || !subject || !body) {
       return NextResponse.json({ error: "Recipient email, subject and body are required" }, { status: 400 })
@@ -56,6 +56,7 @@ export async function POST(request: NextRequest) {
       applicationId,
       contactId,
       templateId,
+      syncedEmailId: syncedEmailId || undefined,
     })
 
     if (applicationId) {
