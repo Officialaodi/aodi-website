@@ -13,9 +13,25 @@ import {
 } from "@/components/ui/table"
 import { Switch } from "@/components/ui/switch"
 import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue
+} from "@/components/ui/select"
+import {
   Send, Users, Mail, Loader2, CheckCircle2, AlertCircle, Trash2,
-  RefreshCw, FlaskConical, Upload, UserCheck, Globe, ClipboardList
+  RefreshCw, FlaskConical, Upload, UserCheck, Globe, ClipboardList, Filter
 } from "lucide-react"
+
+const FORM_TYPES: { key: string; label: string }[] = [
+  { key: "mentor", label: "Mentor Applications" },
+  { key: "mentee", label: "Mentee Applications" },
+  { key: "volunteer", label: "Volunteer Applications" },
+  { key: "partner", label: "Partnership Enquiries" },
+  { key: "partner-africa", label: "Partner Africa Applications" },
+  { key: "campus-ambassador", label: "Campus Ambassador Applications" },
+  { key: "empowerher", label: "EmpowerHer Applications" },
+  { key: "stem-workshops", label: "STEM Workshops Interest" },
+  { key: "chembridge-2026", label: "ChemBridge 2026 Registrants" },
+  { key: "contact", label: "Contact Form Messages" },
+]
 
 interface Subscriber {
   id: number
@@ -38,7 +54,7 @@ interface CrmContact {
   fullName: string
 }
 
-type RecipientMode = "subscribers" | "all_contacts" | "custom"
+type RecipientMode = "subscribers" | "all_contacts" | "by_form" | "custom"
 
 export function NewsletterManager() {
   const [subscribers, setSubscribers] = useState<Subscriber[]>([])
@@ -46,6 +62,9 @@ export function NewsletterManager() {
   const [loadingSubscribers, setLoadingSubscribers] = useState(true)
   const [crmContacts, setCrmContacts] = useState<CrmContact[]>([])
   const [loadingCrm, setLoadingCrm] = useState(false)
+  const [selectedFormType, setSelectedFormType] = useState<string>("")
+  const [formContacts, setFormContacts] = useState<CrmContact[]>([])
+  const [loadingFormContacts, setLoadingFormContacts] = useState(false)
 
   const [subject, setSubject] = useState("")
   const [body, setBody] = useState("")
@@ -102,6 +121,28 @@ export function NewsletterManager() {
     }
   }, [])
 
+  const fetchFormContacts = useCallback(async (formType: string) => {
+    if (!formType) { setFormContacts([]); return }
+    setLoadingFormContacts(true)
+    try {
+      const res = await fetch(`/api/admin/applications?type=${encodeURIComponent(formType)}`)
+      if (res.ok) {
+        const data: { email: string; fullName: string }[] = await res.json()
+        const seen = new Set<string>()
+        const unique: CrmContact[] = []
+        for (const a of data) {
+          if (a.email && !seen.has(a.email.toLowerCase())) {
+            seen.add(a.email.toLowerCase())
+            unique.push({ email: a.email, fullName: a.fullName || "" })
+          }
+        }
+        setFormContacts(unique)
+      }
+    } catch { } finally {
+      setLoadingFormContacts(false)
+    }
+  }, [])
+
   useEffect(() => { fetchSubscribers() }, [fetchSubscribers])
 
   useEffect(() => {
@@ -109,6 +150,12 @@ export function NewsletterManager() {
       fetchCrmContacts()
     }
   }, [recipientMode, crmContacts.length, fetchCrmContacts])
+
+  useEffect(() => {
+    if (recipientMode === "by_form" && selectedFormType) {
+      fetchFormContacts(selectedFormType)
+    }
+  }, [recipientMode, selectedFormType, fetchFormContacts])
 
   useEffect(() => {
     const lines = customList.split(/[\n,;]+/).map(l => l.trim()).filter(Boolean)
@@ -135,6 +182,7 @@ export function NewsletterManager() {
         .map(s => ({ email: s.email, fullName: s.fullName || "" }))
     }
     if (recipientMode === "all_contacts") return crmContacts
+    if (recipientMode === "by_form") return formContacts
     return parsedCustom
   }
 
@@ -327,7 +375,7 @@ export function NewsletterManager() {
               {/* Audience selector */}
               <div className="space-y-2">
                 <Label className="text-sm font-semibold">Send To *</Label>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                   <button
                     type="button"
                     onClick={() => setRecipientMode("subscribers")}
@@ -337,7 +385,7 @@ export function NewsletterManager() {
                     <UserCheck className="w-5 h-5 text-green-700 mt-0.5 flex-shrink-0" />
                     <div>
                       <p className="text-sm font-medium text-gray-900">Newsletter subscribers</p>
-                      <p className="text-xs text-gray-500 mt-0.5">{stats.active} active subscribers</p>
+                      <p className="text-xs text-gray-500 mt-0.5">{stats.active} active</p>
                     </div>
                   </button>
 
@@ -351,8 +399,21 @@ export function NewsletterManager() {
                     <div>
                       <p className="text-sm font-medium text-gray-900">All form contacts</p>
                       <p className="text-xs text-gray-500 mt-0.5">
-                        {loadingCrm ? "Loading..." : crmContacts.length > 0 ? `${crmContacts.length} unique contacts` : "Everyone who submitted a form"}
+                        {loadingCrm ? "Loading..." : crmContacts.length > 0 ? `${crmContacts.length} unique` : "All forms"}
                       </p>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setRecipientMode("by_form")}
+                    className={`flex items-start gap-3 p-3 rounded-lg border text-left transition-all ${recipientMode === "by_form" ? "border-orange-600 bg-orange-50 ring-1 ring-orange-600" : "border-gray-200 hover:border-gray-300 bg-white"}`}
+                    data-testid="button-audience-by-form"
+                  >
+                    <Filter className="w-5 h-5 text-orange-600 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">Specific form</p>
+                      <p className="text-xs text-gray-500 mt-0.5">One form's contacts</p>
                     </div>
                   </button>
 
@@ -369,6 +430,34 @@ export function NewsletterManager() {
                     </div>
                   </button>
                 </div>
+
+                {recipientMode === "by_form" && (
+                  <div className="space-y-2 mt-2">
+                    <Label className="text-xs text-gray-600 font-medium">Select which form to target</Label>
+                    <Select
+                      value={selectedFormType}
+                      onValueChange={val => { setSelectedFormType(val); setFormContacts([]) }}
+                    >
+                      <SelectTrigger className="w-full" data-testid="select-form-type">
+                        <SelectValue placeholder="Choose a form..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {FORM_TYPES.map(f => (
+                          <SelectItem key={f.key} value={f.key}>{f.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {selectedFormType && (
+                      <p className="text-xs text-gray-500">
+                        {loadingFormContacts
+                          ? "Loading contacts..."
+                          : formContacts.length > 0
+                            ? <span className="text-orange-700 font-medium">✓ {formContacts.length} unique contact{formContacts.length !== 1 ? "s" : ""} from this form</span>
+                            : "No contacts found for this form yet"}
+                      </p>
+                    )}
+                  </div>
+                )}
 
                 {recipientMode === "custom" && (
                   <div className="space-y-1 mt-2">
@@ -394,6 +483,7 @@ export function NewsletterManager() {
                     This newsletter will be sent to <strong>{recipients.length} recipient{recipients.length !== 1 ? "s" : ""}</strong>
                     {recipientMode === "all_contacts" && " (all contacts who submitted any form on the website)"}
                     {recipientMode === "subscribers" && " (active newsletter subscribers only)"}
+                    {recipientMode === "by_form" && selectedFormType && ` from ${FORM_TYPES.find(f => f.key === selectedFormType)?.label || selectedFormType}`}
                     {recipientMode === "custom" && " from your custom list"}
                   </div>
                 )}
