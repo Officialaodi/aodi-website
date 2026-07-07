@@ -87,9 +87,11 @@ export default async function ProgramDetailPage({ params }: Props) {
                 <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-aodi-teal via-aodi-green to-aodi-gold rounded-full" />
                 <div className="pl-8 py-2">
                   <Quote className="h-8 w-8 text-aodi-teal/30 mb-4" />
-                  <p className="text-slate text-lg leading-relaxed" data-testid="text-overview-content">
-                    {program.description}
-                  </p>
+                  <div
+                    className="text-slate text-lg leading-relaxed prose prose-lg max-w-none prose-p:mb-4 prose-ul:my-2 prose-li:my-0"
+                    data-testid="text-overview-content"
+                    dangerouslySetInnerHTML={{ __html: program.description }}
+                  />
                 </div>
               </div>
             </div>
