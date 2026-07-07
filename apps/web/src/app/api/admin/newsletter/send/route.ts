@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
         .select()
         .from(newsletterSubscribers)
         .where(and(eq(newsletterSubscribers.status, 'active'), isNull(newsletterSubscribers.unsubscribedAt)))
-      recipientList = subs
+      recipientList = subs.map(s => ({ email: s.email, fullName: s.fullName ?? undefined }))
     }
 
     if (recipientList.length === 0) {
